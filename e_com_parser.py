@@ -8,8 +8,6 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 webs = pd.read_excel('top300.xlsx',names=['Web'])
 
-#webs=pd.read_excel('yandex_webs.xlsx',dtype=str)
-
 def check_www(url, text):
     if 'www' in text:
         return url
@@ -44,8 +42,6 @@ check=[]
 all_links={}
 social_networks={'VK':'vk.com','OK':'ok.ru','Facebook':'facebook.com','Twitter':'twitter.com','Instagram':'instagram.com','YouTube':'youtube.com'}
 for i,n in enumerate(webs.index):
-    if i == 237:
-        continue
     print(i)
     title=''
     meta_descr=''
