@@ -66,8 +66,7 @@ for i,n in enumerate(webs.index):
     crws=''
     ptws=''
     try:
-        post_data={'domain': webs['Web'][n],'real': 'true2.1simpleJKF3h8wX'}
-        resp=requests.post('http://www.whois-service.ru/',data=post_data)
+        resp=requests.get('https://www.nic.ru/whois/?searchWord={}'.format(webs['Webs'][n]),timeout=3)
     except:
         pass
     else:
