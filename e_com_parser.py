@@ -20,6 +20,7 @@ for n,i in enumerate(webs['Web']):
     try:        
         url = 'http://' + str(i)
         r = requests.get(url)
+        r.encoding='utf8'
         soup = BeautifulSoup(r.text, 'lxml')
         links = {re.sub("^\s+|\n|\r|\s+$", '', str(x.text)):x['href'] for x in soup.find_all('a', href=True)}              
         try:
@@ -48,6 +49,7 @@ for i,n in enumerate(webs.index):
     meta_kw=''
     try:
         resp=requests.get('http://'+webs['Web'][n])
+        resp.encoding='utf8'
         soup=BeautifulSoup(resp.text,'lxml')
         try:
             title=soup.find('title').text
