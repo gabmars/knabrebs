@@ -24,11 +24,7 @@ for n,i in enumerate(webs['Web']):
         soup = BeautifulSoup(r.text, 'lxml')
         links = {re.sub("^\s+|\n|\r|\s+$", '', str(x.text)):x['href'] for x in soup.find_all('a', href=True)}              
         try:
-            s = {}
-            for w in words:
-                if w in links.keys():
-                    s[w]=links[w]
-            d[i] = s
+            d[i] = {w:links[w] for w in words if w in links and len(links[w])>0}
         except Exception as e:
             print('url {} No such found. Error {}'.format(i, e))
     except Exception as e:
