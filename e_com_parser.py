@@ -2,10 +2,20 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 import re
+import datetime
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
-webs = pd.read_excel('top300.xlsx',names=['Web'])
+start_time=datetime.datetime.now()
+
+webs=pd.read_csv('webs.csv',encoding='1251',sep=';')[['домен']]
+webs.columns=['Web']
+
+l=webs['Web'].values.ravel()
+chunk_size=10000
+chunks=[l[i:i + chunk_size] for i in range(0, len(l), chunk_size)]
+
+words=['Контакты', 'О нас', 'Контактная информация','Реквизиты', 'Юридическая информация', 'Публичная оферта', 'Условия оферты','Контакты и реквизиты','Оплата','Доставка и оплата','Оплата и доставка']
 
 def check_www(url, text):
     if 'www' in text:
@@ -13,30 +23,8 @@ def check_www(url, text):
     else:
         return str(url) + str(text)
 #%%
-d = {}
-words=['Контакты', 'О нас', 'Контактная информация','Реквизиты', 'Юридическая информация', 'Публичная оферта', 'Условия оферты','Контакты и реквизиты','Оплата','Доставка и оплата','Оплата и доставка']
-for n,i in enumerate(webs['Web']):
-    print(n)
-    try:        
-        url = 'http://' + str(i)
-        r = requests.get(url)
-        r.encoding='utf8'
-        soup = BeautifulSoup(r.text, 'lxml')
-        links = {re.sub("^\s+|\n|\r|\s+$", '', str(x.text)):x['href'] for x in soup.find_all('a', href=True)}              
-        try:
-            d[i] = {w:links[w] for w in words if w in links and len(links[w])>0}
-        except Exception as e:
-            print('url {} No such found. Error {}'.format(i, e))
-    except Exception as e:
-        print('url {} not found. Error {}'.format(i,e))
-#%%
-d={k:v for k,v in d.items() if len(v)>0}
-m = []
-texts=[]
 r=re.compile('\d{3}[-\.\s]??\d{3}[-\.\s]??\d{4}|\(\d{3}\)\s*\d{3}[-\.\s]??\d{4}|\d{3}[-\.\s]??\d{4}')
 data=pd.DataFrame()
-check=[]
-all_links={}
 social_networks={'VK':'vk.com','OK':'ok.ru','Facebook':'facebook.com','Twitter':'twitter.com','Instagram':'instagram.com','YouTube':'youtube.com'}
 for i,n in enumerate(webs.index):
     print(i)
@@ -44,8 +32,7 @@ for i,n in enumerate(webs.index):
     meta_descr=''
     meta_kw=''
     try:
-        resp=requests.get('http://'+webs['Web'][n])
-        resp.encoding='utf8'
+        resp=requests.get('http://'+webs['Web'][n],timeout=3)
         soup=BeautifulSoup(resp.text,'lxml')
         try:
             title=soup.find('title').text
@@ -67,10 +54,10 @@ for i,n in enumerate(webs.index):
         resp=requests.get('https://www.nic.ru/whois/?searchWord={}'.format(webs['Webs'][n]),timeout=3)
     except:
         pass
-    else:
+    else: 
         try:
             soup=BeautifulSoup(resp.text,'lxml')
-            whois=soup.find('div',{'class':'column-b'}).text
+            whois=soup.find('ul',{'class':'_2mebH _23Irb'}).text
             try:
                 crws=whois[whois.index('created:'):]
                 crws=crws[8:crws.index('T')].strip()
@@ -82,10 +69,15 @@ for i,n in enumerate(webs.index):
             except:
                 pass
         except:
-            pass  
-    if webs['Web'][n] in d.keys():
+            pass
+    links = {re.sub("^\s+|\n|\r|\s+$", '', str(x.text)):x['href'] for x in soup.find_all('a', href=True)}              
+    try:
+        d={w:links[w] for w in words if w in links and len(links[w])>0}
+    except Exception as e:
+        d={}
+    if len(d) > 0:
         try:
-            for lnk in d[webs['Web'][n]].items():
+            for lnk in d.items():
                 skip=False
                 print(lnk)
                 row=[]
@@ -94,19 +86,18 @@ for i,n in enumerate(webs.index):
                 row.append(meta_descr)
                 row.append(meta_kw)
                 row.append(lnk[0])
-                try:
-                    m.append(lnk[1])
-                    if webs['Web'][n].replace('www.','').lower() not in m[-1].lower():
-                        l='http://'+(webs['Web'][n]+'/'+m[-1]).replace('//','/')
+                try: 
+                    if webs['Web'][n].replace('www.','').lower() not in lnk[1].lower():
+                        l='http://'+(webs['Web'][n]+'/'+lnk[1]).replace('//','/')
                     else:
-                        tm=m[-1]
+                        tm=lnk[1]
                         if 'http' not in tm:
                             l='http://'+tm
                             l=l.replace('//','/')
                         else:
                             l=tm
                     row.append(l)
-                    resp=requests.get(l) 
+                    resp=requests.get(l,timeout=3) 
                     soup=BeautifulSoup(resp.text,'lxml')
                     links = [a['href'] for a in soup.find_all('a') if a.has_attr('href')]
                     snetworks={'VK':'','OK':'','Facebook':'','Twitter':'','Instagram':'','YouTube':''}
@@ -117,21 +108,21 @@ for i,n in enumerate(webs.index):
                     for sn in ['VK','OK','Facebook','Twitter','Instagram','YouTube']:
                         row.append(snetworks[sn])
                     try:
-                        texts.append(re.sub('\s',' ',soup.text).strip())
+                        text=re.sub('\s',' ',soup.text).strip()
                     except:
-                        pass
+                        text=''
                     try:
-                        row.append(';'.join(r.findall(texts[-1].replace('-',''))))
+                        row.append(';'.join(r.findall(text.replace('-',''))))
                     except:
                         row.append('')
                     try:
-                        s=texts[-1].split('ИНН')[1].replace('-','').replace(')','').replace(':','').replace(',','').strip().split(' ')[0].replace('\\','/')
+                        s=text.split('ИНН')[1].replace('-','').replace(')','').replace(':','').replace(',','').strip().split(' ')[0].replace('\\','/')
                         if s=='/КПП':
-                            s=texts[-1].split('КПП')[1].replace('-','').replace(')','').replace(':','').strip().split(' ')[0].replace('\\','/').split('/')[0]
+                            s=text.split('КПП')[1].replace('-','').replace(')','').replace(':','').strip().split(' ')[0].replace('\\','/').split('/')[0]
                             skip=True
                             row.append(s)
                             try:
-                                row.append(texts[-1].split('КПП')[1].replace('-','').replace(')','').replace(':','').strip().split(' ')[0].replace('\\','/').split('/')[1])
+                                row.append(text.split('КПП')[1].replace('-','').replace(')','').replace(':','').strip().split(' ')[0].replace('\\','/').split('/')[1])
                             except:
                                 row.append('')
                         elif '/' in s:
@@ -146,20 +137,20 @@ for i,n in enumerate(webs.index):
                             row.append('')
                     try:
                         if not skip:
-                            row.append(texts[-1].split('КПП')[1].replace('-','').replace(')','').replace(':','').strip().split(' ')[0])
+                            row.append(text.split('КПП')[1].replace('-','').replace(')','').replace(':','').strip().split(' ')[0])
                     except:
                         row.append('')
                     try:
-                        s=texts[-1].split('ОГРН')[-1].replace('-','').replace(')','').replace(':','').replace('ИП','').strip().split(' ')[0]
+                        s=text.split('ОГРН')[-1].replace('-','').replace(')','').replace(':','').replace('ИП','').strip().split(' ')[0]
                         if '/' in s:
-                            s=texts[-1].split('ОГРН')[-1].replace('-','').replace(')','').replace(':','').replace('ИП','').strip().split('/')[1].split(' ')[1]
+                            s=text.split('ОГРН')[-1].replace('-','').replace(')','').replace(':','').replace('ИП','').strip().split('/')[1].split(' ')[1]
                         row.append(s)                    
                     except:
                         row.append('')
                     try:
-                        s=texts[-1].split('БИК')[-1].replace('-','').replace(')','').replace(':','').strip().split(' ')[0]
+                        s=text.split('БИК')[-1].replace('-','').replace(')','').replace(':','').strip().split(' ')[0]
                         if len(s) < 9:
-                            ss=texts[-1].split('БИК')[-1].replace('-','').replace(':','').strip().split(' ')
+                            ss=text.split('БИК')[-1].replace('-','').replace(':','').strip().split(' ')
                             for i in range(1,10):
                                 s=''.join(ss[:i])
                                 if len(s) >= 9:
@@ -170,11 +161,11 @@ for i,n in enumerate(webs.index):
                     row.append('')
                     for cs in ['Корреспондентский счет','Корреспонденский счет','Корр. счет','Кор. счет','Корр.счет','Кор.счет','кор/счет','К/счет','Кор/сч','Корр/С','Кор/с','К/сч','К/С']:
                         try:
-                            s=texts[-1].lower().replace('\\','/').split(cs.lower())[-1].replace('-','').replace(')','').replace(':','').strip().split(' ')[0]
+                            s=text.lower().replace('\\','/').split(cs.lower())[-1].replace('-','').replace(')','').replace(':','').strip().split(' ')[0]
                             s=re.sub('\D','',s)
                             if s != '':
                                 if len(s) < 20:
-                                    ss=texts[-1].lower().replace('\\','/').split(cs.lower())[-1].replace('-','').replace(')','').replace(':','').strip().split(' ')
+                                    ss=text.lower().replace('\\','/').split(cs.lower())[-1].replace('-','').replace(')','').replace(':','').strip().split(' ')
                                     for i in range(1,20):
                                         s=''.join(ss[:i])
                                         if len(s) >= 20:
@@ -188,11 +179,11 @@ for i,n in enumerate(webs.index):
                     row.append('')
                     for rs in ['Расчетный счет','Рассч/С','Р/Счет','Р/сч','Р/С']:
                         try:
-                            s=texts[-1].lower().replace('\\','/').split(rs.lower())[-1].replace('-','').replace(')','').replace(':','').strip().split(' ')[0]
+                            s=text.lower().replace('\\','/').split(rs.lower())[-1].replace('-','').replace(')','').replace(':','').strip().split(' ')[0]
                             s=re.sub('\D','',s)
                             if (s != row[-1]) & (s != ''):
                                 if len(s) < 20:
-                                    ss=texts[-1].lower().replace('\\','/').split(rs.lower())[-1].replace('-','').replace(')','').replace(':','').strip().split(' ')
+                                    ss=text.lower().replace('\\','/').split(rs.lower())[-1].replace('-','').replace(')','').replace(':','').strip().split(' ')
                                     for i in range(1,20):
                                         s=''.join(ss[:i])
                                         if len(s) >= 20:
@@ -204,7 +195,7 @@ for i,n in enumerate(webs.index):
                         except:
                             pass
                     try:
-                        row.append(';'.join(re.findall(r'[\w\.-]+@[\w\.-]+', texts[-1])))
+                        row.append(';'.join(re.findall(r'[\w\.-]+@[\w\.-]+', text)))
                     except:
                         row.append('')
                     row.append(crws)
@@ -212,7 +203,7 @@ for i,n in enumerate(webs.index):
                     row.append('')
                     for pmnt in ['безнал','банковск','пластиков','visa','mastercard','americanexpress','master card','american express','кредитн']:
                         try:
-                            texts[-1].index(pmnt)
+                            text.index(pmnt)
                             row[-1]='1'
                             break
                         except:
@@ -233,6 +224,7 @@ for i,n in enumerate(webs.index):
         row.append(ptws)
         row.append('')
         data=data.append([row],ignore_index=True)
+    break
 #%%
 data.columns=['Web','<Title>','<Description>','<Keywords>','LinkType','Link','VK','OK','Facebook','Twitter','Instagram','YouTube','Phones','INN','KPP','OGRN','BIK','CS','RS','Email','DomainRegDate','DomainExpiryDate','Payment']
 data=data[['Web','<Title>','<Description>','<Keywords>','LinkType','Link','INN','KPP','OGRN','BIK','CS','RS','Phones','Email','VK','OK','Facebook','Twitter','Instagram','YouTube','DomainRegDate','DomainExpiryDate','Payment']]
@@ -258,4 +250,9 @@ for n,i in enumerate(data['Web'].drop_duplicates().values.ravel()):
     res=res.set_value(n,'Links',str(lll))
     for col in ['INN','KPP','OGRN','BIK','CS','RS','Phones','Email','VK','OK','Facebook','Twitter','Instagram','YouTube','DomainRegDate','DomainExpiryDate','Payment']:
         res=res.set_value(n,col,sdf.loc[sdf[col].apply(len)==sdf[col].apply(len).max()][col].values.ravel()[0])        
-res.to_excel('ecom_result.xlsx',index=None)
+
+res['Phones']=res['Phones'].apply(lambda x: ';'.join(set(x.split(';'))))
+
+res.to_excel('result.xlsx',index=None)
+
+print(datetime.datetime.now()-start_time)
