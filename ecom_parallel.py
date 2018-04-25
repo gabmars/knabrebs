@@ -236,7 +236,6 @@ def scan(webs,data):
             row.append('')
             data.append(row)
 
-#%%
 if __name__ == '__main__':
     mgr=mp.Manager()
     shared_list=mgr.list()
@@ -252,7 +251,6 @@ if __name__ == '__main__':
     
     data=pd.DataFrame(list(shared_list))   
 
-#%%
     data.columns=['Web','<Title>','<Description>','<Keywords>','LinkType','Link','VK','OK','Facebook','Twitter','Instagram','YouTube','Phones','INN','KPP','OGRN','BIK','CS','RS','Email','DomainRegDate','DomainExpiryDate','Payment']
     data=data[['Web','<Title>','<Description>','<Keywords>','LinkType','Link','INN','KPP','OGRN','BIK','CS','RS','Phones','Email','VK','OK','Facebook','Twitter','Instagram','YouTube','DomainRegDate','DomainExpiryDate','Payment']]
     data=data.fillna('')
@@ -280,6 +278,6 @@ if __name__ == '__main__':
     
     res['Phones']=res['Phones'].apply(lambda x: ';'.join(set(x.split(';'))))
     
-    #res.to_excel('ihead_domains_se pt_2017_RU_result.xlsx',index=None)
+    res.to_excel('ihead_domains_se pt_2017_RU_result.xlsx',index=None)
     
     print(datetime.datetime.now()-start_time)
