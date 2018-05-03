@@ -59,8 +59,10 @@ def scan(webs,data):
                 pass
         except:
             pass
-        else:
+        try:
             links = {re.sub("^\s+|\n|\r|\s+$", '', str(x.text)):x['href'] for x in soup.find_all('a', href=True)}              
+        except:
+            links = dict()
         crws=''
         ptws=''
         try:
