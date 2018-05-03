@@ -59,6 +59,8 @@ def scan(webs,data):
                 pass
         except:
             pass
+        else:
+            links = {re.sub("^\s+|\n|\r|\s+$", '', str(x.text)):x['href'] for x in soup.find_all('a', href=True)}              
         crws=''
         ptws=''
         try:
@@ -81,7 +83,6 @@ def scan(webs,data):
                     pass
             except:
                 pass
-        links = {re.sub("^\s+|\n|\r|\s+$", '', str(x.text)):x['href'] for x in soup.find_all('a', href=True)}              
         try:
             d={w:links[w] for w in words if w in links and len(links[w])>0}
         except Exception as e:
