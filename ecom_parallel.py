@@ -5,6 +5,8 @@ import re
 import datetime
 import multiprocessing as mp
 import warnings
+import os
+import sys
 from winreg import OpenKey,HKEY_CURRENT_USER ,CloseKey,KEY_WRITE,SetValueEx,REG_DWORD
 warnings.simplefilter(action='ignore', category=FutureWarning)
 keyval=r"Software\Microsoft\Windows\CurrentVersion\Internet Settings"
@@ -39,6 +41,7 @@ def scan(webs,data):
     r=re.compile('\d{3}[-\.\s]??\d{3}[-\.\s]??\d{4}|\(\d{3}\)\s*\d{3}[-\.\s]??\d{4}|\d{3}[-\.\s]??\d{4}')
     social_networks={'VK':'vk.com','OK':'ok.ru','Facebook':'facebook.com','Twitter':'twitter.com','Instagram':'instagram.com','YouTube':'youtube.com'}
     for web in webs:
+        sys.stdout=open('log\\{}.counter_log'.format(str(len(data))),'w')
         title=''
         meta_descr=''
         meta_kw=''
@@ -93,7 +96,6 @@ def scan(webs,data):
             try:
                 for lnk in d.items():
                     skip=False
-                    print(lnk)
                     row=[]
                     row.append(web)
                     row.append(title)
