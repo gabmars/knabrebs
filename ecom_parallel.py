@@ -32,27 +32,35 @@ chunks=[l[i:i + chunk_size] for i in range(0, len(l), chunk_size)]
 
 def scan(webs,data):
     def check_www(url, text):
-        if 'www' in text:
+        if 'www' in text: 
             return url
         else:
             return str(url) + str(text)
-    
-    words=['Контакты', 'О нас', 'Контактная информация','Реквизиты', 'Юридическая информация', 'Публичная оферта', 'Условия оферты','Контакты и реквизиты','Оплата','Доставка и оплата','Оплата и доставка']
+
+    words=['Компания','О компании','Контакты', 'О нас', 'Контактная информация','Реквизиты', 'Юридическая информация', 'Публичная оферта', 'Условия оферты','Контакты и реквизиты','Оплата','Доставка и оплата','Оплата и доставка']
     r=re.compile('\d{3}[-\.\s]??\d{3}[-\.\s]??\d{4}|\(\d{3}\)\s*\d{3}[-\.\s]??\d{4}|\d{3}[-\.\s]??\d{4}')
     social_networks={'VK':'vk.com','OK':'ok.ru','Facebook':'facebook.com','Twitter':'twitter.com','Instagram':'instagram.com','YouTube':'youtube.com'}
-    for web in webs:
+    for sweb in webs:
         sys.stdout=open('log\\{}.counter_log'.format(str(len(data))),'w')
+        print(len(data))
+        keyval=r"Software\Microsoft\Windows\CurrentVersion\Internet Settings"
+        Registrykey= OpenKey(HKEY_CURRENT_USER, keyval, 0,KEY_WRITE)
+        SetValueEx(Registrykey,"ProxyEnable",0,REG_DWORD,0)
+        CloseKey(Registrykey)
         title=''
         meta_descr=''
         meta_kw=''
-        try:
-            resp=requests.get('http://'+web,timeout=3)
+        try: 
+            resp=requests.get('http://'+sweb,timeout=3)
+            web=resp.url
+            for sw in ['https','http',':','/','www.']:
+                web=web.replace(sw,'')
             soup=BeautifulSoup(resp.text,'lxml')
             try:
                 title=soup.find('title').text
             except:
                 pass
-            try:
+            try: 
                 meta_descr=soup.find('meta',{'name':'description'})['content']
             except:
                 pass
@@ -61,8 +69,9 @@ def scan(webs,data):
             except:
                 pass
         except:
+            web=sweb
             pass
-        try:
+        try: 
             links = {re.sub("^\s+|\n|\r|\s+$", '', str(x.text)):x['href'] for x in soup.find_all('a', href=True)}              
         except:
             links = dict()
@@ -95,8 +104,30 @@ def scan(webs,data):
         if len(d) > 0:
             try:
                 for lnk in d.items():
+                    if web.replace('www.','').lower() not in lnk[1].lower():
+                        l='http://'+(web+'/'+lnk[1]).replace('//','/')
+                    else:
+                        tm=lnk[1]
+                        if 'http' not in tm:
+                            l='http://'+tm
+                            l=l.replace('//','/')
+                        else:
+                            l=tm
+                    resp=requests.get(l,timeout=3) 
+                    new_soup=BeautifulSoup(resp.text,'lxml')
+                    for x in new_soup.find_all('a', href=True):
+                        k=re.sub("^\s+|\n|\r|\s+$", '', str(x.text))
+                        v=x['href']
+                        if v not in list(d.values()) and k in words and len(v)>0 and k != v:
+                            d[k]=v
+            except:
+                pass
+            try:
+                for lnk in d.items():
                     skip=False
+                    print(lnk)
                     row=[]
+                    row.append(sweb)
                     row.append(web)
                     row.append(title)
                     row.append(meta_descr)
@@ -132,20 +163,23 @@ def scan(webs,data):
                         except:
                             row.append('')
                         try:
-                            s=text.split('ИНН')[1].replace('-','').replace(')','').replace(':','').replace(',','').strip().split(' ')[0].replace('\\','/')
+                            s=text.split('ИНН')[1].replace('-','').replace(')','').replace(':','').replace(',','').strip().replace('/ КПП','/КПП').replace(' / ','/').split(' ')[0].replace('\\','/')
                             if s=='/КПП':
-                                s=text.split('КПП')[1].replace('-','').replace(')','').replace(':','').strip().split(' ')[0].replace('\\','/').split('/')[0]
+                                s=text.split('КПП')[1].replace('-','').replace(')','').replace(':','').strip().replace(' / ','/').split(' ')[0].replace('\\','/').split('/')[0]
                                 skip=True
                                 row.append(s)
                                 try:
-                                    row.append(text.split('КПП')[1].replace('-','').replace(')','').replace(':','').strip().split(' ')[0].replace('\\','/').split('/')[1])
+                                    row.append(text.split('КПП')[1].replace('-','').replace(')','').replace(':','').strip().replace(' / ','/').split(' ')[0].replace('\\','/').split('/')[1])
                                 except:
                                     row.append('')
                             elif '/' in s:
-                                skip=True
-                                row.append(s.split('/')[0])
-                                row.append(s.split('/')[1])
-                            else:
+                                skip=True 
+                                row.append(s.replace('/КПП','').split('/')[0])
+                                try:
+                                    row.append(s.replace('/КПП','').split('/')[1])
+                                except:
+                                    row.append('')
+                            else: 
                                 row.append(s)
                         except:
                             row.append('')
@@ -177,11 +211,11 @@ def scan(webs,data):
                         row.append('')
                         for cs in ['Корреспондентский счет','Корреспонденский счет','Корр. счет','Кор. счет','Корр.счет','Кор.счет','кор/счет','К/счет','Кор/сч','Корр/С','Кор/с','К/сч','К/С']:
                             try:
-                                s=text.lower().replace('\\','/').split(cs.lower())[-1].replace('-','').replace(')','').replace(':','').strip().split(' ')[0]
+                                s=text.lower().replace('ё','е').replace('\\','/').split(cs.lower())[-1].replace('-','').replace(')','').replace(':','').strip().split(' ')[0]
                                 s=re.sub('\D','',s)
                                 if s != '':
                                     if len(s) < 20:
-                                        ss=text.lower().replace('\\','/').split(cs.lower())[-1].replace('-','').replace(')','').replace(':','').strip().split(' ')
+                                        ss=text.lower().replace('ё','е').replace('\\','/').split(cs.lower())[-1].replace('-','').replace(')','').replace(':','').strip().split(' ')
                                         for i in range(1,20):
                                             s=''.join(ss[:i])
                                             if len(s) >= 20:
@@ -195,11 +229,11 @@ def scan(webs,data):
                         row.append('')
                         for rs in ['Расчетный счет','Рассч/С','Р/Счет','Р/сч','Р/С']:
                             try:
-                                s=text.lower().replace('\\','/').split(rs.lower())[-1].replace('-','').replace(')','').replace(':','').strip().split(' ')[0]
+                                s=text.lower().replace('ё','е').replace('\\','/').split(rs.lower())[-1].replace('-','').replace(')','').replace(':','').strip().split(' ')[0]
                                 s=re.sub('\D','',s)
                                 if (s != row[-1]) & (s != ''):
                                     if len(s) < 20:
-                                        ss=text.lower().replace('\\','/').split(rs.lower())[-1].replace('-','').replace(')','').replace(':','').strip().split(' ')
+                                        ss=text.lower().replace('ё','е').replace('\\','/').split(rs.lower())[-1].replace('-','').replace(')','').replace(':','').strip().split(' ')
                                         for i in range(1,20):
                                             s=''.join(ss[:i])
                                             if len(s) >= 20:
@@ -231,6 +265,7 @@ def scan(webs,data):
                 print(str(e))
         else:
             row=[]
+            row.append(sweb)
             row.append(web)
             row.append(title)
             row.append(meta_descr)
@@ -241,7 +276,10 @@ def scan(webs,data):
             row.append('')
             data.append(row)
 
+#%%
 if __name__ == '__main__':
+    for f in os.listdir('log'):
+        os.remove('log\\'+f)
     mgr=mp.Manager()
     shared_list=mgr.list()
     
@@ -253,11 +291,11 @@ if __name__ == '__main__':
     
     for p in prcs:
         p.join()
-    
     data=pd.DataFrame(list(shared_list))   
 
-    data.columns=['Web','<Title>','<Description>','<Keywords>','LinkType','Link','VK','OK','Facebook','Twitter','Instagram','YouTube','Phones','INN','KPP','OGRN','BIK','CS','RS','Email','DomainRegDate','DomainExpiryDate','Payment']
-    data=data[['Web','<Title>','<Description>','<Keywords>','LinkType','Link','INN','KPP','OGRN','BIK','CS','RS','Phones','Email','VK','OK','Facebook','Twitter','Instagram','YouTube','DomainRegDate','DomainExpiryDate','Payment']]
+#%%
+    data.columns=['In_Web','Out_Web','<Title>','<Description>','<Keywords>','LinkType','Link','VK','OK','Facebook','Twitter','Instagram','YouTube','Phones','INN','KPP','OGRN','BIK','CS','RS','Email','DomainRegDate','DomainExpiryDate','Payment']
+    data=data[['In_Web','Out_Web', '<Title>','<Description>','<Keywords>','LinkType','Link','INN','KPP','OGRN','BIK','CS','RS','Phones','Email','VK','OK','Facebook','Twitter','Instagram','YouTube','DomainRegDate','DomainExpiryDate','Payment']]
     data=data.fillna('')
     data['INN']=data['INN'].apply(lambda x: re.sub('\D','',x))
     data['KPP']=data['KPP'].apply(lambda x: re.sub('\D','',x))
@@ -266,23 +304,21 @@ if __name__ == '__main__':
     data['CS']=data['CS'].apply(lambda x: re.sub('\D','',x))
     data['RS']=data['RS'].apply(lambda x: re.sub('\D','',x))
     
-    for col in ['INN','KPP','OGRN','BIK','CS','RS']:
-        for i in data.loc[(data[col].apply(len)<8) & (data[col]!='')].index:
-            data=data.set_value(i,col,'')
     res=pd.DataFrame() 
-    for n,i in enumerate(data['Web'].drop_duplicates().values.ravel()):
-        sdf=data.loc[data['Web']==i].copy ()
+    
+    for n,i in enumerate(data['In_Web'].drop_duplicates().values.ravel()):
+        sdf=data.loc[data['In_Web']==i].copy()
         lll={}
         for lt,ll in zip(sdf['LinkType'].values.ravel(),sdf['Link'].values.ravel()):
             lll[lt]=ll
-        for col in ['Web','<Title>','<Description>','<Keywords>']:
+        for col in ['In_Web','Out_Web','<Title>','<Description>','<Keywords>']:
             res=res.set_value(n,col,sdf[col].values.ravel()[0])
         res=res.set_value(n,'Links',str(lll))
         for col in ['INN','KPP','OGRN','BIK','CS','RS','Phones','Email','VK','OK','Facebook','Twitter','Instagram','YouTube','DomainRegDate','DomainExpiryDate','Payment']:
             res=res.set_value(n,col,sdf.loc[sdf[col].apply(len)==sdf[col].apply(len).max()][col].values.ravel()[0])        
     
     res['Phones']=res['Phones'].apply(lambda x: ';'.join(set(x.split(';'))))
-    
-    res.to_excel('ihead_domains_se pt_2017_RU_result.xlsx',index=None)
+
+    #res.to_excel('ihead_domains_se pt_2017_RU_result.xlsx',index=None)
     
     print(datetime.datetime.now()-start_time)
