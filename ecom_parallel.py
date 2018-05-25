@@ -16,18 +16,11 @@ CloseKey(Registrykey)
 
 start_time=datetime.datetime.now()
 
-test=pd.read_excel('test_sample.xlsx',dtype=str)
-test=test.replace({'nan':None})
-test=test.fillna('')
-
-webs=pd.read_csv('ihead_domains_sept_2017_RU.csv',encoding='1251',sep=';')[['домен']]
+webs=pd.read_excel('ecom_reminder.xlsx',encoding='1251')
 webs.columns=['Web']
-webs=webs.loc[webs['Web'].isin(test['Web'].values.ravel())]
-
-webs=webs.head(100)
 
 l=webs['Web'].values.ravel()
-chunk_size=10
+chunk_size=7000
 chunks=[l[i:i + chunk_size] for i in range(0, len(l), chunk_size)]
 
 def scan(webs,data):
@@ -211,7 +204,7 @@ def scan(webs,data):
                         row.append('')
                         for cs in ['Корреспондентский счет','Корреспонденский счет','Корр. счет','Кор. счет','Корр.счет','Кор.счет','кор/счет','К/счет','Кор/сч','Корр/С','Кор/с','К/сч','К/С']:
                             try:
-                                s=text.lower().replace('ё','е').replace('\\','/').split(cs.lower())[-1].replace('-','').replace(')','').replace(':','').strip().split(' ')[0]
+                                s=text.lower().replace('№','').replace('ё','е').replace('\\','/').split(cs.lower())[-1].replace('-','').replace(')','').replace(':','').strip().split(' ')[0]
                                 s=re.sub('\D','',s)
                                 if s != '':
                                     if len(s) < 20:
@@ -229,7 +222,7 @@ def scan(webs,data):
                         row.append('')
                         for rs in ['Расчетный счет','Рассч/С','Р/Счет','Р/сч','Р/С']:
                             try:
-                                s=text.lower().replace('ё','е').replace('\\','/').split(rs.lower())[-1].replace('-','').replace(')','').replace(':','').strip().split(' ')[0]
+                                s=text.lower().replace('№','').replace('ё','е').replace('\\','/').split(rs.lower())[-1].replace('-','').replace(')','').replace(':','').strip().split(' ')[0]
                                 s=re.sub('\D','',s)
                                 if (s != row[-1]) & (s != ''):
                                     if len(s) < 20:
@@ -294,6 +287,10 @@ if __name__ == '__main__':
     data=pd.DataFrame(list(shared_list))   
 
 #%%
+    print('Collected')
+    writer = pd.ExcelWriter('ecom_temp.xlsx',options={'strings_to_urls': False})
+    data.to_excel(writer,index=None)
+    writer.close()
     data.columns=['In_Web','Out_Web','<Title>','<Description>','<Keywords>','LinkType','Link','VK','OK','Facebook','Twitter','Instagram','YouTube','Phones','INN','KPP','OGRN','BIK','CS','RS','Email','DomainRegDate','DomainExpiryDate','Payment']
     data=data[['In_Web','Out_Web', '<Title>','<Description>','<Keywords>','LinkType','Link','INN','KPP','OGRN','BIK','CS','RS','Phones','Email','VK','OK','Facebook','Twitter','Instagram','YouTube','DomainRegDate','DomainExpiryDate','Payment']]
     data=data.fillna('')
@@ -319,6 +316,10 @@ if __name__ == '__main__':
     
     res['Phones']=res['Phones'].apply(lambda x: ';'.join(set(x.split(';'))))
 
-    #res.to_excel('ihead_domains_se pt_2017_RU_result.xlsx',index=None)
-    
+    writer = pd.ExcelWriter('ecom_result_part4.xlsx',options={'strings_to_urls': False})
+    res.to_excel(writer,index=None)
+    writer.close()
+#%%
     print(datetime.datetime.now()-start_time)
+    
+    os.system('shutdown.exe /h')
