@@ -214,7 +214,7 @@ def scan(webs,data):
                                             if len(s) >= 20:
                                                 break
                                     s=re.sub('\D','',s)
-                                    if (s != row[-1]) & (s != '') & (len(s)>=20):
+                                    if (s != row[-1]) & (s != '') & (len(s)>=18):
                                         row[-1]=s
                                         break
                             except:
@@ -232,7 +232,7 @@ def scan(webs,data):
                                             if len(s) >= 20:
                                                 break
                                     s=re.sub('\D','',s)
-                                    if (s != row[-1]) & (s != '') & (len(s)>=20):
+                                    if (s != row[-1]) & (s != '') & (len(s)>=18):
                                         row[-1]=s
                                         break
                             except:
