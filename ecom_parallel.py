@@ -112,7 +112,7 @@ def scan(webs,data):
                     for x in new_soup.find_all('a', href=True):
                         k=re.sub("^\s+|\n|\r|\s+$", '', str(x.text))
                         v=x['href']
-                        if v not in list(d.values()) and k in words and len(v)>0 and k != v:
+                        if k not in list(d.keys()) and k in words and len(v)>0 and k != v:
                             d[k]=v.replace('../','')
             except:
                 pass
