@@ -91,7 +91,7 @@ def scan(webs,data):
             except:
                 pass
         try:
-            d={w:links[w] for w in words if w in links and len(links[w])>0}
+            d={w:links[w].replace('../','') for w in words if w in links and len(links[w])>0}
         except Exception as e:
             d={}
         if len(d) > 0:
@@ -112,7 +112,7 @@ def scan(webs,data):
                         k=re.sub("^\s+|\n|\r|\s+$", '', str(x.text))
                         v=x['href']
                         if v not in list(d.values()) and k in words and len(v)>0 and k != v:
-                            d[k]=v
+                            d[k]=v.replace('../','')
             except:
                 pass
             try:
@@ -220,7 +220,7 @@ def scan(webs,data):
                             except:
                                 pass
                         row.append('')
-                        for rs in ['Расчетный счет','Рассч/С','Р/Счет','Р/сч','Р/С']:
+                        for rs in ['Расчетный счет','Рассч/С',' Р/Счет',' Р/сч',' Р/С','Р/Счет','Р/сч','Р/С']:
                             try:
                                 s=text.lower().replace('№','').replace('ё','е').replace('\\','/').split(rs.lower())[-1].replace('-','').replace(')','').replace(':','').strip().split(' ')[0]
                                 s=re.sub('\D','',s)
