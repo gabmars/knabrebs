@@ -156,13 +156,13 @@ def scan(webs,data):
                         except:
                             row.append('')
                         try:
-                            s=text.split('ИНН')[1].replace('-','').replace(')','').replace(':','').replace(',','').strip().replace('/ КПП','/КПП').replace(' / ','/').split(' ')[0].replace('\\','/')
+                            s=text.split(' ИНН')[1].replace('-','').replace(')','').replace(':','').replace(',','').strip().replace('/ КПП','/КПП').replace(' / ','/').split(' ')[0].replace('\\','/')
                             if s=='/КПП':
-                                s=text.split('КПП')[1].replace('-','').replace(')','').replace(':','').strip().replace(' / ','/').split(' ')[0].replace('\\','/').split('/')[0]
+                                s=text.split(' КПП')[1].replace('-','').replace(')','').replace(':','').strip().replace(' / ','/').split(' ')[0].replace('\\','/').split('/')[0]
                                 skip=True
                                 row.append(s)
                                 try:
-                                    row.append(text.split('КПП')[1].replace('-','').replace(')','').replace(':','').strip().replace(' / ','/').split(' ')[0].replace('\\','/').split('/')[1])
+                                    row.append(text.split(' КПП')[1].replace('-','').replace(')','').replace(':','').strip().replace(' / ','/').split(' ')[0].replace('\\','/').split('/')[1])
                                 except:
                                     row.append('')
                             elif '/' in s:
@@ -180,7 +180,7 @@ def scan(webs,data):
                                 row.append('')
                         try:
                             if not skip:
-                                row.append(text.split('КПП')[1].replace('-','').replace(')','').replace(':','').strip().split(' ')[0])
+                                row.append(text.split(' КПП')[1].replace('-','').replace(')','').replace(':','').strip().split(' ')[0])
                         except:
                             row.append('')
                         try:
