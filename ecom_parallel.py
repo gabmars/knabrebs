@@ -166,7 +166,7 @@ def scan(webs,data):
                                     row.append(text.split(' КПП')[1].replace('-','').replace(')','').replace(':','').strip().replace(' / ','/').split(' ')[0].replace('\\','/').split('/')[1])
                                 except:
                                     row.append('')
-                            elif '/' in s:
+                            elif '/' in s and 'КПП' in s:
                                 skip=True 
                                 row.append(s.replace('/КПП','').split('/')[0])
                                 try:
@@ -186,7 +186,7 @@ def scan(webs,data):
                             row.append('')
                         try:
                             s=text.split('ОГРН')[-1].replace('-','').replace(')','').replace(':','').replace('ИП','').strip().split(' ')[0]
-                            if '/' in s:
+                            if '/' in s and 'КПП' in s:
                                 s=text.split('ОГРН')[-1].replace('-','').replace(')','').replace(':','').replace('ИП','').strip().split('/')[1].split(' ')[1]
                             row.append(s)                    
                         except:
