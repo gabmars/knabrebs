@@ -166,24 +166,62 @@ def scan(webs,data):
                                     row.append(text.split(' КПП')[1].replace('-','').replace(')','').replace(':','').strip().replace(' / ','/').split(' ')[0].replace('\\','/').split('/')[1])
                                 except:
                                     row.append('')
-                            elif '/' in s and 'КПП' in s:
+                            elif '/' in s and '/КПП'==s[:4]:
                                 skip=True 
                                 row.append(s.replace('/КПП','').split('/')[0])
                                 try:
                                     row.append(s.replace('/КПП','').split('/')[1])
                                 except:
                                     row.append('')
+                            elif '/' in s and 'КПП' in s:
+                                skip=True 
+                                row.append(s.replace(' КПП','').split('/')[0])
+                                try:
+                                    row.append(s.replace(' КПП','').split('/')[1])
+                                except:
+                                    row.append('')
                             else: 
                                 row.append(s)
                         except:
-                            row.append('')
-                            if skip:
+                            try:
+                                s=text.split('ИНН')[1].replace('-','').replace(')','').replace(':','').replace(',','').strip().replace('/ КПП','/КПП').replace(' / ','/').split(' ')[0].replace('\\','/')
+                                if s=='/КПП':
+                                    s=text.split('КПП')[1].replace('-','').replace(')','').replace(':','').strip().replace(' / ','/').split(' ')[0].replace('\\','/').split('/')[0]
+                                    skip=True
+                                    row.append(s)
+                                    try:
+                                        row.append(text.split('КПП')[1].replace('-','').replace(')','').replace(':','').strip().replace(' / ','/').split(' ')[0].replace('\\','/').split('/')[1])
+                                    except:
+                                        row.append('')
+                                elif '/' in s and '/КПП'==s[:4]:
+                                    skip=True 
+                                    row.append(s.replace('/КПП','').split('/')[0])
+                                    try:
+                                        row.append(s.replace('/КПП','').split('/')[1])
+                                    except:
+                                        row.append('')
+                                elif '/' in s and 'КПП' in s:
+                                    skip=True 
+                                    row.append(s.replace('КПП','').split('/')[0])
+                                    try:
+                                        row.append(s.replace('КПП','').split('/')[1])
+                                    except:
+                                        row.append('')
+                                else: 
+                                    row.append(s)
+                            except:
                                 row.append('')
+                                if skip:
+                                    row.append('')
                         try:
                             if not skip:
                                 row.append(text.split(' КПП')[1].replace('-','').replace(')','').replace(':','').strip().split(' ')[0])
                         except:
-                            row.append('')
+                            try:
+                                if not skip:
+                                    row.append(text.split('КПП')[1].replace('-','').replace(')','').replace(':','').strip().split(' ')[0])
+                            except:
+                                row.append('')
                         try:
                             s=text.split('ОГРН')[-1].replace('-','').replace(')','').replace(':','').replace('ИП','').strip().split(' ')[0]
                             if '/' in s and 'КПП' in s:
