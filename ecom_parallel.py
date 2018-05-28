@@ -205,7 +205,7 @@ def scan(webs,data):
                         row.append('')
                         for cs in ['Корреспондентский счет','Корреспонденский счет','Корр. счет','Кор. счет','Корр.счет','Кор.счет','кор/счет','К/счет','Кор/сч','Корр/С','Кор/с','К/сч','К/С']:
                             try:
-                                s=text.lower().replace('№','').replace('ё','е').replace('\\','/').split(cs.lower())[-1].replace('-','').replace(')','').replace(':','').strip().split(' ')[0]
+                                s=text.lower().replace('.','').replace('№','').replace('ё','е').replace('\\','/').split(cs.lower())[-1].replace('-','').replace(')','').replace(':','').strip().split(' ')[0]
                                 s=re.sub('\D','',s)
                                 if s != '':
                                     if len(s) < 20:
@@ -223,7 +223,7 @@ def scan(webs,data):
                         row.append('')
                         for rs in ['Расчетный счет','Рассч/С',' Р/Счет',' Р/сч',' Р/С','Р/Счет','Р/сч','Р/С']:
                             try:
-                                s=text.lower().replace('№','').replace('ё','е').replace('\\','/').split(rs.lower())[-1].replace('-','').replace(')','').replace(':','').strip().split(' ')[0]
+                                s=text.lower().replace('.','').replace('№','').replace('ё','е').replace('\\','/').split(rs.lower())[-1].replace('-','').replace(')','').replace(':','').strip().split(' ')[0]
                                 s=re.sub('\D','',s)
                                 if (s != row[-1]) & (s != ''):
                                     if len(s) < 20:
