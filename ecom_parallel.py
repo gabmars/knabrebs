@@ -48,6 +48,7 @@ def scan(webs,data):
             web=resp.url
             for sw in ['https','http',':','/','www.']:
                 web=web.replace(sw,'')
+            web=web.encode('utf8').decode('idna')
             soup=BeautifulSoup(resp.text,'lxml')
             try:
                 title=soup.find('title').text
