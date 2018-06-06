@@ -312,7 +312,7 @@ def scan(webs,data):
                         row.append(crws)
                         row.append(ptws)
                         row.append('')
-                        for pmnt in ['безнал','банковск','пластиков','visa','mastercard','americanexpress','master card','american express','кредитн']:
+                        for pmnt in ['безнал','банковск','пластиков','visa','mastercard','americanexpress','master card','american express','виза','мастеркард','мастер кард','мастер-кард','кредитн','киви','paypal','scrill','qiwi','webmoney', 'пайпал','скрилл','яндекс-деньги','яндекс.деньги','веб-мани','веб мани','яндекс деньги', 'rbk money', 'рбк мани','рапида', 'w1','liqpay','ликпей','perfectmoney','перфектмани','деньги@mail.ru', 'деньги@майл.ру']:
                             try:
                                 text.index(pmnt)
                                 row[-1]='1'
