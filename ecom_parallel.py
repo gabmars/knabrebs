@@ -14,6 +14,35 @@ Registrykey= OpenKey(HKEY_CURRENT_USER, keyval, 0,KEY_WRITE)
 SetValueEx(Registrykey,"ProxyEnable",0,REG_DWORD,0)
 CloseKey(Registrykey)
 
+ip2=[7,2,4,10,3,5,9,4,6,8]
+ip1=[3,7,2,4,10,3,5,9,4,6,8]
+ul=[2,4,10,3,5,9,4,6,8]
+
+def check_inn(inn):
+    if len(inn)==9 or len(inn)==11:
+        inn='0'+inn
+    elif len(inn)<9 or len(inn)>12:
+        return False
+    if len(inn)==12:
+        chck_sum=0
+        for i,n in enumerate(inn[:10]):
+            chck_sum+=int(n)*ip2[i]
+        if chck_sum%11!=int(inn[10]):
+            return False
+        chck_sum=0
+        for i,n in enumerate(inn[:11]):
+            chck_sum+=int(n)*ip1[i]
+        if chck_sum%11!=int(inn[11]):
+            return False
+        return True
+    if len(inn)==10:
+        chck_sum=0
+        for i,n in enumerate(inn[:9]):
+            chck_sum+=int(n)*ul[i]
+        if chck_sum%11!=int(inn[9]):
+            return False
+        return True
+
 start_time=datetime.datetime.now()
 
 webs=pd.read_excel('ecom_reminder.xlsx',encoding='1251')
