@@ -43,6 +43,15 @@ def check_inn(inn):
             return False
         return True
 
+def check_ogrn(ogrn):
+    if len(ogrn)==13:
+        if str(int(ogrn[:12])%11)[-1]!=ogrn[-1]:
+            return False
+    if len(ogrn)==15:
+        if str(int(ogrn[:14])%11)[-1]!=ogrn[-1]:
+            return False    
+    return True
+
 start_time=datetime.datetime.now()
 
 webs=pd.read_excel('ecom_reminder.xlsx',encoding='1251')
