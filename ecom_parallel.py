@@ -368,8 +368,8 @@ if __name__ == '__main__':
     writer = pd.ExcelWriter('ecom_temp.xlsx',options={'strings_to_urls': False})
     data.to_excel(writer,index=None)
     writer.close()
-    data.columns=['In_Web','Out_Web','<Title>','<Description>','<Keywords>','LinkType','Link','VK','OK','Facebook','Twitter','Instagram','YouTube','Phones','INN','KPP','OGRN','BIK','CS','RS','Email','DomainRegDate','DomainExpiryDate','Payment']
-    data=data[['In_Web','Out_Web', '<Title>','<Description>','<Keywords>','LinkType','Link','INN','KPP','OGRN','BIK','CS','RS','Phones','Email','VK','OK','Facebook','Twitter','Instagram','YouTube','DomainRegDate','DomainExpiryDate','Payment']]
+    data.columns=['In_Web','Out_Web','<Title>','<Description>','<Keywords>','LinkType','Link','VK','OK','Facebook','Twitter','Instagram','YouTube','Phones','INN','KPP','OGRN','BIK','CS','RS','Email','DomainRegDate','DomainExpiryDate','Payment','INNS']
+    data=data[['In_Web','Out_Web', '<Title>','<Description>','<Keywords>','LinkType','Link','INN','KPP','OGRN','BIK','CS','RS','Phones','Email','VK','OK','Facebook','Twitter','Instagram','YouTube','DomainRegDate','DomainExpiryDate','Payment','INNS']]
     data=data.fillna('')
     data['INN']=data['INN'].apply(lambda x: re.sub('\D','',x))
     data['KPP']=data['KPP'].apply(lambda x: re.sub('\D','',x))
@@ -390,6 +390,7 @@ if __name__ == '__main__':
         res=res.set_value(n,'Links',str(lll))
         for col in ['INN','KPP','OGRN','BIK','CS','RS','Phones','Email','VK','OK','Facebook','Twitter','Instagram','YouTube','DomainRegDate','DomainExpiryDate','Payment']:
             res=res.set_value(n,col,sdf.loc[sdf[col].apply(len)==sdf[col].apply(len).max()][col].values.ravel()[0])        
+        res=res.set_value(n,'INNS',';'.join(list(sdf['INNS'].values.ravel())))
     
     res['Phones']=res['Phones'].apply(lambda x: ';'.join(set(x.split(';'))))
 
