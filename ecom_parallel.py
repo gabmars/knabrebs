@@ -47,21 +47,22 @@ def check_ogrn(ogrn):
     if len(ogrn)==13:
         if str(int(ogrn[:12])%11)[-1]!=ogrn[-1]:
             return False
+        return True
     if len(ogrn)==15:
         if str(int(ogrn[:14])%11)[-1]!=ogrn[-1]:
-            return False    
-    return True
+            return False
+        return True
 
 start_time=datetime.datetime.now()
 
-webs=pd.read_excel('ecom_reminder.xlsx',encoding='1251')
-webs.columns=['Web']
+#webs=pd.read_excel('ecom_reminder.xlsx',encoding='1251')
+#webs.columns=['Web']
 
-l=webs['Web'].values.ravel()
-chunk_size=7000
-chunks=[l[i:i + chunk_size] for i in range(0, len(l), chunk_size)]
+#l=webs[['дата','домен2']].values.tolist()
+#chunk_size=7000
+#chunks=[l[i:i + chunk_size] for i in range(0, len(l), chunk_size)]
 
-def scan(webs,data):
+def scan(inpt,data):
     def check_www(url, text):
         if 'www' in text: 
             return url
@@ -69,10 +70,10 @@ def scan(webs,data):
             return str(url) + str(text)
 
     words=['Компания','О компании','Контакты', 'О нас', 'Контактная информация','Реквизиты', 'Юридическая информация', 'Публичная оферта', 'Условия оферты','Контакты и реквизиты','Оплата','Доставка и оплата','Оплата и доставка']
-    r=re.compile('\d{3}[-\.\s]??\d{3}[-\.\s]??\d{4}|\(\d{3}\)\s*\d{3}[-\.\s]??\d{4}|\d{3}[-\.\s]??\d{4}')
     social_networks={'VK':'vk.com','OK':'ok.ru','Facebook':'facebook.com','Twitter':'twitter.com','Instagram':'instagram.com','YouTube':'youtube.com'}
-    for sweb in webs:
-        sys.stdout=open('log\\{}.counter_log'.format(str(len(data))),'w')
+    for inp in inpt:
+        sweb=inp[0]
+#        sys.stdout=open('log\\{}.counter_log'.format(str(len(data))),'w')
         print(len(data))
         keyval=r"Software\Microsoft\Windows\CurrentVersion\Internet Settings"
         Registrykey= OpenKey(HKEY_CURRENT_USER, keyval, 0,KEY_WRITE)
@@ -116,15 +117,17 @@ def scan(webs,data):
         else: 
             try:
                 whois_soup=BeautifulSoup(resp.text,'lxml')
-                whois=whois_soup.find('ul',{'class':'_2mebH _23Irb'}).text
+                whois=whois_soup.find('ul',{'class':'_3U-mA _23Irb'}).text
                 try:
                     crws=whois[whois.index('created:'):]
-                    crws=crws[8:crws.index('T')].strip()
+                    crws=crws[8:crws.index('paid-till:')].strip()
+                    crws=datetime.datetime.strptime(crws,'%Y.%m.%d').strftime('%d.%m.%Y')
                 except:
                     pass
                 try:
                     ptws=whois[whois.index('paid-till:'):]
-                    ptws=ptws[10:ptws.index('T')].strip()
+                    ptws=ptws[10:ptws.index('source:')].strip()
+                    ptws=datetime.datetime.strptime(ptws,'%Y.%m.%d').strftime('%d.%m.%Y')
                 except:
                     pass
             except:
@@ -160,6 +163,7 @@ def scan(webs,data):
                     print(lnk)
                     row=[]
                     row.append(sweb)
+                    row.append(inp[1])
                     row.append(web)
                     row.append(title)
                     row.append(meta_descr)
@@ -191,7 +195,9 @@ def scan(webs,data):
                         except:
                             text=''
                         try:
-                            row.append(';'.join(r.findall(text.replace('-',''))))
+#                            r=re.compile('\d{3}[-\.\s]??\d{3}[-\.\s]??\d{4}|\(\d{3}\)\s*\d{3}[-\.\s]??\d{4}|\d{3}[-\.\s]??\d{4}')
+                            phones=[s for s in re.sub('\D',' ',re.sub('[^\w\s]','',text)).split(' ') if s != '' and len(s) > 6 and len(s) < 12 and s[0] in ['7','8','3','4','9']]
+                            row.append(';'.join(phones))
                         except:
                             row.append('')
                         try:
@@ -328,6 +334,16 @@ def scan(webs,data):
                                 break
                             except:
                                 pass
+                        inns=[]
+                        for n in [s for s in re.sub('\D',' ',text).split(' ') if s != '']:
+                            if check_inn(n):
+                                inns.append(n)
+                        row.append(';'.join(inns))
+                        ogrns=[]
+                        for n in [s for s in re.sub('\D',' ',text).split(' ') if s != '']:
+                            if check_ogrn(n):
+                                ogrns.append(n)
+                        row.append(';'.join(ogrns))
                         data.append(row)
                     except Exception as e:
                         print(str(e))
@@ -336,6 +352,7 @@ def scan(webs,data):
         else:
             row=[]
             row.append(sweb)
+            row.append(inp[1])
             row.append(web)
             row.append(title)
             row.append(meta_descr)
@@ -344,32 +361,37 @@ def scan(webs,data):
             row.append(crws)
             row.append(ptws)
             row.append('')
+            row.append('')
+            row.append('')
             data.append(row)
 
 #%%
 if __name__ == '__main__':
-    for f in os.listdir('log'):
-        os.remove('log\\'+f)
-    mgr=mp.Manager()
-    shared_list=mgr.list()
-    
-    prcs=[] 
-    for chunk in chunks:
-        p=mp.Process(target=scan, args=(chunk,shared_list,))
-        prcs.append(p)
-        p.start() 
-    
-    for p in prcs:
-        p.join()
-    data=pd.DataFrame(list(shared_list))   
+#    for f in os.listdir('log'):
+#        os.remove('log\\'+f)
+#    mgr=mp.Manager()
+#    shared_list=mgr.list()
+#    
+#    prcs=[] 
+#    for chunk in chunks:
+#        p=mp.Process(target=scan, args=(chunk,shared_list,))
+#        prcs.append(p)
+#        p.start() 
+#    
+#    for p in prcs:
+#        p.join()
+#    data=pd.DataFrame(list(shared_list))
+    shared_list=[]
+    scan([['bfglaznoeyabloko.ru','09.06.2018']],shared_list)
+    data=pd.DataFrame(list(shared_list))
 
 #%%
     print('Collected')
-    writer = pd.ExcelWriter('ecom_temp.xlsx',options={'strings_to_urls': False})
-    data.to_excel(writer,index=None)
-    writer.close()
-    data.columns=['In_Web','Out_Web','<Title>','<Description>','<Keywords>','LinkType','Link','VK','OK','Facebook','Twitter','Instagram','YouTube','Phones','INN','KPP','OGRN','BIK','CS','RS','Email','DomainRegDate','DomainExpiryDate','Payment','INNS']
-    data=data[['In_Web','Out_Web', '<Title>','<Description>','<Keywords>','LinkType','Link','INN','KPP','OGRN','BIK','CS','RS','Phones','Email','VK','OK','Facebook','Twitter','Instagram','YouTube','DomainRegDate','DomainExpiryDate','Payment','INNS']]
+#    writer = pd.ExcelWriter('ecom_temp.xlsx',options={'strings_to_urls': False})
+#    data.to_excel(writer,index=None)
+#    writer.close()
+    data.columns=['In_Web','In_RegDate','Out_Web','<Title>','<Description>','<Keywords>','LinkType','Link','VK','OK','Facebook','Twitter','Instagram','YouTube','Phones','INN','KPP','OGRN','BIK','CS','RS','Email','DomainRegDate','DomainExpiryDate','Payment','INNS','OGRNS']
+    data=data[['In_Web','Out_Web', '<Title>','<Description>','<Keywords>','LinkType','Link','INN','KPP','OGRN','BIK','CS','RS','Phones','Email','VK','OK','Facebook','Twitter','Instagram','YouTube','In_RegDate','DomainRegDate','DomainExpiryDate','Payment','INNS','OGRNS']]
     data=data.fillna('')
     data['INN']=data['INN'].apply(lambda x: re.sub('\D','',x))
     data['KPP']=data['KPP'].apply(lambda x: re.sub('\D','',x))
@@ -385,19 +407,22 @@ if __name__ == '__main__':
         lll={}
         for lt,ll in zip(sdf['LinkType'].values.ravel(),sdf['Link'].values.ravel()):
             lll[lt]=ll
-        for col in ['In_Web','Out_Web','<Title>','<Description>','<Keywords>']:
+        for col in ['In_Web','In_RegDate','Out_Web','<Title>','<Description>','<Keywords>']:
             res=res.set_value(n,col,sdf[col].values.ravel()[0])
         res=res.set_value(n,'Links',str(lll))
         for col in ['INN','KPP','OGRN','BIK','CS','RS','Phones','Email','VK','OK','Facebook','Twitter','Instagram','YouTube','DomainRegDate','DomainExpiryDate','Payment']:
             res=res.set_value(n,col,sdf.loc[sdf[col].apply(len)==sdf[col].apply(len).max()][col].values.ravel()[0])        
         res=res.set_value(n,'INNS',';'.join(list(sdf['INNS'].values.ravel())))
+        res=res.set_value(n,'OGRNS',';'.join(list(sdf['OGRNS'].values.ravel())))
     
     res['Phones']=res['Phones'].apply(lambda x: ';'.join(set(x.split(';'))))
 
-    writer = pd.ExcelWriter('ecom_result_part4.xlsx',options={'strings_to_urls': False})
-    res.to_excel(writer,index=None)
-    writer.close()
+    res=res[['In_Web','Out_Web', '<Title>','<Description>','<Keywords>','Links','INN','KPP','OGRN','BIK','CS','RS','Phones','Email','VK','OK','Facebook','Twitter','Instagram','YouTube','In_RegDate','DomainRegDate','DomainExpiryDate','Payment','INNS','OGRNS']]
+
+#    writer = pd.ExcelWriter('ecom_result_part4.xlsx',options={'strings_to_urls': False})
+#    res.to_excel(writer,index=None)
+#    writer.close()
 #%%
     print(datetime.datetime.now()-start_time)
     
-    os.system('shutdown.exe /h')
+#    os.system('shutdown.exe /h')
