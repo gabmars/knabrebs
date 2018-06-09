@@ -196,7 +196,7 @@ def scan(inpt,data):
                             text=''
                         try:
 #                            r=re.compile('\d{3}[-\.\s]??\d{3}[-\.\s]??\d{4}|\(\d{3}\)\s*\d{3}[-\.\s]??\d{4}|\d{3}[-\.\s]??\d{4}')
-                            phones=[s for s in re.sub('\D',' ',re.sub('[^\w\s]','',text)).split(' ') if s != '' and len(s) > 6 and len(s) < 12 and s[0] in ['7','8','3','4','9']]
+                            phones=[s for s in re.sub('\D',' ',re.sub('[^\w\s]','',text)).split(' ') if s != '' and len(s) in [7,10,11] and s[0] in ['7','8','3','4','9']]
                             row.append(';'.join(phones))
                         except:
                             row.append('')
