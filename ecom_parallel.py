@@ -7,12 +7,7 @@ import multiprocessing as mp
 import warnings
 import os
 import sys
-from winreg import OpenKey,HKEY_CURRENT_USER ,CloseKey,KEY_WRITE,SetValueEx,REG_DWORD
 warnings.simplefilter(action='ignore', category=FutureWarning)
-keyval=r"Software\Microsoft\Windows\CurrentVersion\Internet Settings"
-Registrykey= OpenKey(HKEY_CURRENT_USER, keyval, 0,KEY_WRITE)
-SetValueEx(Registrykey,"ProxyEnable",0,REG_DWORD,0)
-CloseKey(Registrykey)
 
 ip2=[7,2,4,10,3,5,9,4,6,8]
 ip1=[3,7,2,4,10,3,5,9,4,6,8]
@@ -27,22 +22,24 @@ def check_inn(inn):
         chck_sum=0
         for i,n in enumerate(inn[:10]):
             chck_sum+=int(n)*ip2[i]
-        if chck_sum%11!=int(inn[10]):
+        print(chck_sum)
+        if str(chck_sum%11)[-1]!=inn[10]:
             return False
         chck_sum=0
         for i,n in enumerate(inn[:11]):
             chck_sum+=int(n)*ip1[i]
-        if chck_sum%11!=int(inn[11]):
+        print(chck_sum)
+        if str(chck_sum%11)[-1]!=inn[11]:
             return False
         return True
     if len(inn)==10:
         chck_sum=0
         for i,n in enumerate(inn[:9]):
             chck_sum+=int(n)*ul[i]
-        if chck_sum%11!=int(inn[9]):
+        if str(chck_sum%11)[-1]!=inn[9]:
             return False
         return True
-
+#%%
 def check_ogrn(ogrn):
     if len(ogrn)==13:
         if str(int(ogrn[:12])%11)[-1]!=ogrn[-1]:
@@ -55,13 +52,13 @@ def check_ogrn(ogrn):
 
 start_time=datetime.datetime.now()
 
-#webs=pd.read_excel('ecom_reminder.xlsx',encoding='1251')
-#webs.columns=['Web']
-
-#l=webs[['дата','домен2']].values.tolist()
-#chunk_size=7000
-#chunks=[l[i:i + chunk_size] for i in range(0, len(l), chunk_size)]
-
+webs=pd.read_csv('ihead_domains_1526985681_5593.csv',encoding='1251',sep=';')
+webs=webs.head(100000)
+#%%
+l=webs[['дата','домен']].values.tolist()
+chunk_size=2000
+chunks=[l[i:i + chunk_size] for i in range(0, len(l), chunk_size)]
+#%%
 def scan(inpt,data):
     def check_www(url, text):
         if 'www' in text: 
@@ -73,12 +70,8 @@ def scan(inpt,data):
     social_networks={'VK':'vk.com','OK':'ok.ru','Facebook':'facebook.com','Twitter':'twitter.com','Instagram':'instagram.com','YouTube':'youtube.com'}
     for inp in inpt:
         sweb=inp[0]
-#        sys.stdout=open('log\\{}.counter_log'.format(str(len(data))),'w')
+        sys.stdout=open('log\\{}.counter_log'.format(str(len(data))),'w')
         print(len(data))
-        keyval=r"Software\Microsoft\Windows\CurrentVersion\Internet Settings"
-        Registrykey= OpenKey(HKEY_CURRENT_USER, keyval, 0,KEY_WRITE)
-        SetValueEx(Registrykey,"ProxyEnable",0,REG_DWORD,0)
-        CloseKey(Registrykey)
         title=''
         meta_descr=''
         meta_kw=''
@@ -367,29 +360,26 @@ def scan(inpt,data):
 
 #%%
 if __name__ == '__main__':
-#    for f in os.listdir('log'):
-#        os.remove('log\\'+f)
-#    mgr=mp.Manager()
-#    shared_list=mgr.list()
-#    
-#    prcs=[] 
-#    for chunk in chunks:
-#        p=mp.Process(target=scan, args=(chunk,shared_list,))
-#        prcs.append(p)
-#        p.start() 
-#    
-#    for p in prcs:
-#        p.join()
-#    data=pd.DataFrame(list(shared_list))
-    shared_list=[]
-    scan([['bfglaznoeyabloko.ru','09.06.2018']],shared_list)
+    for f in os.listdir('log'):
+        os.remove('log\\'+f)
+    mgr=mp.Manager()
+    shared_list=mgr.list()
+    
+    prcs=[] 
+    for chunk in chunks:
+        p=mp.Process(target=scan, args=(chunk,shared_list,))
+        prcs.append(p)
+        p.start() 
+    
+    for p in prcs:
+        p.join()
     data=pd.DataFrame(list(shared_list))
 
 #%%
     print('Collected')
-#    writer = pd.ExcelWriter('ecom_temp.xlsx',options={'strings_to_urls': False})
-#    data.to_excel(writer,index=None)
-#    writer.close()
+    writer = pd.ExcelWriter('ecom_temp.xlsx',options={'strings_to_urls': False})
+    data.to_excel(writer,index=None)
+    writer.close()
     data.columns=['In_Web','In_RegDate','Out_Web','<Title>','<Description>','<Keywords>','LinkType','Link','VK','OK','Facebook','Twitter','Instagram','YouTube','Phones','INN','KPP','OGRN','BIK','CS','RS','Email','DomainRegDate','DomainExpiryDate','Payment','INNS','OGRNS']
     data=data[['In_Web','Out_Web', '<Title>','<Description>','<Keywords>','LinkType','Link','INN','KPP','OGRN','BIK','CS','RS','Phones','Email','VK','OK','Facebook','Twitter','Instagram','YouTube','In_RegDate','DomainRegDate','DomainExpiryDate','Payment','INNS','OGRNS']]
     data=data.fillna('')
@@ -419,10 +409,10 @@ if __name__ == '__main__':
 
     res=res[['In_Web','Out_Web', '<Title>','<Description>','<Keywords>','Links','INN','KPP','OGRN','BIK','CS','RS','Phones','Email','VK','OK','Facebook','Twitter','Instagram','YouTube','In_RegDate','DomainRegDate','DomainExpiryDate','Payment','INNS','OGRNS']]
 
-#    writer = pd.ExcelWriter('ecom_result_part4.xlsx',options={'strings_to_urls': False})
-#    res.to_excel(writer,index=None)
-#    writer.close()
+    writer = pd.ExcelWriter('ecom_result_part0.xlsx',options={'strings_to_urls': False})
+    res.to_excel(writer,index=None)
+    writer.close()
 #%%
     print(datetime.datetime.now()-start_time)
     
-#    os.system('shutdown.exe /h')
+    os.system('shutdown.exe /h')
