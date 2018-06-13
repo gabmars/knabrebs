@@ -39,7 +39,7 @@ def check_inn(inn):
         if str(chck_sum%11)[-1]!=inn[9]:
             return False
         return True
-#%%
+
 def check_ogrn(ogrn):
     if len(ogrn)==13:
         if str(int(ogrn[:12])%11)[-1]!=ogrn[-1]:
@@ -52,11 +52,11 @@ def check_ogrn(ogrn):
 
 start_time=datetime.datetime.now()
 
-webs=pd.read_csv('ihead_domains_1526985681_5593.csv',encoding='1251',sep=';')
-webs=webs.head(100000)
+webs=pd.read_csv('ihead_domains_sept_2017.csv',encoding='1251',sep=';')
+webs=webs.head(100)
 #%%
-l=webs[['дата','домен']].values.tolist()
-chunk_size=2000
+l=webs[['домен','дата']].values.tolist()
+chunk_size=20
 chunks=[l[i:i + chunk_size] for i in range(0, len(l), chunk_size)]
 #%%
 def scan(inpt,data):
@@ -68,7 +68,7 @@ def scan(inpt,data):
 
     words=['Компания','О компании','Контакты', 'О нас', 'Контактная информация','Реквизиты', 'Юридическая информация', 'Публичная оферта', 'Условия оферты','Контакты и реквизиты','Оплата','Доставка и оплата','Оплата и доставка']
     social_networks={'VK':'vk.com','OK':'ok.ru','Facebook':'facebook.com','Twitter':'twitter.com','Instagram':'instagram.com','YouTube':'youtube.com'}
-    for inp in inpt:
+    for inp  in inpt:
         sweb=inp[0]
         sys.stdout=open('log\\{}.counter_log'.format(str(len(data))),'w')
         print(len(data))
@@ -113,14 +113,18 @@ def scan(inpt,data):
                 whois=whois_soup.find('ul',{'class':'_3U-mA _23Irb'}).text
                 try:
                     crws=whois[whois.index('created:'):]
-                    crws=crws[8:crws.index('paid-till:')].strip()
-                    crws=datetime.datetime.strptime(crws,'%Y.%m.%d').strftime('%d.%m.%Y')
+                    crws=crws[8:18]
+                    crws=re.sub('\D','.',crws)
+                    if len(crws.split('.')[0]) == 4:
+                        crws=crws.split('.')[2]+'.'+crws.split('.')[1]+'.'+crws.split('.')[0]
                 except:
                     pass
                 try:
-                    ptws=whois[whois.index('paid-till:'):]
-                    ptws=ptws[10:ptws.index('source:')].strip()
-                    ptws=datetime.datetime.strptime(ptws,'%Y.%m.%d').strftime('%d.%m.%Y')
+                    ptws=whois[whois.index('till:'):]
+                    ptws=ptws[5:15]
+                    ptws=re.sub('\D','.',ptws)
+                    if len(ptws.split('.')[0]) == 4:
+                        ptws=ptws.split('.')[2]+'.'+ptws.split('.')[1]+'.'+ptws.split('.')[0]
                 except:
                     pass
             except:
@@ -389,7 +393,7 @@ if __name__ == '__main__':
     data['BIK']=data['BIK'].apply(lambda x: re.sub('\D','',x))
     data['CS']=data['CS'].apply(lambda x: re.sub('\D','',x))
     data['RS']=data['RS'].apply(lambda x: re.sub('\D','',x))
-    
+
     res=pd.DataFrame() 
     
     for n,i in enumerate(data['In_Web'].drop_duplicates().values.ravel()):
@@ -406,7 +410,8 @@ if __name__ == '__main__':
         res=res.set_value(n,'OGRNS',';'.join(list(sdf['OGRNS'].values.ravel())))
     
     res['Phones']=res['Phones'].apply(lambda x: ';'.join(set(x.split(';'))))
-
+    res['INNS']=res['INNS'].apply(lambda x: ';'.join(set([s for s in x.split(';') if s!=''])))
+    res['OGRNS']=res['OGRNS'].apply(lambda x: ';'.join(set([s for s in x.split(';') if s!=''])))
     res=res[['In_Web','Out_Web', '<Title>','<Description>','<Keywords>','Links','INN','KPP','OGRN','BIK','CS','RS','Phones','Email','VK','OK','Facebook','Twitter','Instagram','YouTube','In_RegDate','DomainRegDate','DomainExpiryDate','Payment','INNS','OGRNS']]
 
     writer = pd.ExcelWriter('ecom_result_part0.xlsx',options={'strings_to_urls': False})
