@@ -53,6 +53,7 @@ def check_ogrn(ogrn):
 start_time=datetime.datetime.now()
 
 webs=pd.read_csv('ihead_domains_sept_2017.csv',encoding='1251',sep=';')
+#%%
 webs=webs.head(100)
 #%%
 l=webs[['домен','дата']].values.tolist()
@@ -75,6 +76,7 @@ def scan(inpt,data):
         title=''
         meta_descr=''
         meta_kw=''
+        whois=''
         try: 
             resp=requests.get('http://'+sweb,timeout=3)
             web=resp.url
@@ -323,6 +325,7 @@ def scan(inpt,data):
                             row.append('')
                         row.append(crws)
                         row.append(ptws)
+                        row.append(whois)
                         row.append('')
                         for pmnt in ['безнал','банковск','пластиков','visa','mastercard','americanexpress','master card','american express','виза','мастеркард','мастер кард','мастер-кард','кредитн','киви','paypal','scrill','qiwi','webmoney', 'пайпал','скрилл','яндекс-деньги','яндекс.деньги','веб-мани','веб мани','яндекс деньги', 'rbk money', 'рбк мани','рапида', 'w1','liqpay','ликпей','perfectmoney','перфектмани','деньги@mail.ru', 'деньги@майл.ру']:
                             try:
@@ -357,6 +360,7 @@ def scan(inpt,data):
             row.extend(['']*16)
             row.append(crws)
             row.append(ptws)
+            row.append(whois)
             row.append('')
             row.append('')
             row.append('')
@@ -384,16 +388,30 @@ if __name__ == '__main__':
     writer = pd.ExcelWriter('ecom_temp.xlsx',options={'strings_to_urls': False})
     data.to_excel(writer,index=None)
     writer.close()
-    data.columns=['In_Web','In_RegDate','Out_Web','<Title>','<Description>','<Keywords>','LinkType','Link','VK','OK','Facebook','Twitter','Instagram','YouTube','Phones','INN','KPP','OGRN','BIK','CS','RS','Email','DomainRegDate','DomainExpiryDate','Payment','INNS','OGRNS']
-    data=data[['In_Web','Out_Web', '<Title>','<Description>','<Keywords>','LinkType','Link','INN','KPP','OGRN','BIK','CS','RS','Phones','Email','VK','OK','Facebook','Twitter','Instagram','YouTube','In_RegDate','DomainRegDate','DomainExpiryDate','Payment','INNS','OGRNS']]
+    data.columns=['In_Web','In_RegDate','Out_Web','<Title>','<Description>','<Keywords>','LinkType','Link','VK','OK','Facebook','Twitter','Instagram','YouTube','Phones','INN','KPP','OGRN','BIK','CS','RS','Email','DomainRegDate','DomainExpiryDate','WHOIS','Payment','INNS','OGRNS']
+    data=data[['In_Web','Out_Web', '<Title>','<Description>','<Keywords>','LinkType','Link','INN','KPP','OGRN','BIK','CS','RS','Phones','Email','VK','OK','Facebook','Twitter','Instagram','YouTube','In_RegDate','DomainRegDate','DomainExpiryDate','Payment','WHOIS','INNS','OGRNS']]
     data=data.fillna('')
+
     data['INN']=data['INN'].apply(lambda x: re.sub('\D','',x))
     data['KPP']=data['KPP'].apply(lambda x: re.sub('\D','',x))
     data['OGRN']=data['OGRN'].apply(lambda x: re.sub('\D','',x))
     data['BIK']=data['BIK'].apply(lambda x: re.sub('\D','',x))
     data['CS']=data['CS'].apply(lambda x: re.sub('\D','',x))
     data['RS']=data['RS'].apply(lambda x: re.sub('\D','',x))
-
+    
+    for i in data.loc[~data['INN'].apply(len).isin([9,10,11,12])].index:
+        data=data.set_value(i,'INN','')
+    for i in data.loc[~data['KPP'].apply(len).isin([8,9])].index:
+        data=data.set_value(i,'KPP','')
+    for i in data.loc[~data['OGRN'].apply(len).isin([12,13,14,15])].index:
+        data=data.set_value(i,'OGRN','')
+    for i in data.loc[~data['BIK'].apply(len).isin([8,9])].index:
+        data=data.set_value(i,'BIK','')
+    for i in data.loc[~data['CS'].apply(len)==20].index:
+        data=data.set_value(i,'CS','')
+    for i in data.loc[~data['RS'].apply(len)==20].index:
+        data=data.set_value(i,'RS','')
+    
     res=pd.DataFrame() 
     
     for n,i in enumerate(data['In_Web'].drop_duplicates().values.ravel()):
@@ -401,10 +419,10 @@ if __name__ == '__main__':
         lll={}
         for lt,ll in zip(sdf['LinkType'].values.ravel(),sdf['Link'].values.ravel()):
             lll[lt]=ll
-        for col in ['In_Web','In_RegDate','Out_Web','<Title>','<Description>','<Keywords>']:
+        for col in ['In_Web','In_RegDate','Out_Web','<Title>','<Description>','<Keywords>','DomainRegDate','DomainExpiryDate','WHOIS']:
             res=res.set_value(n,col,sdf[col].values.ravel()[0])
         res=res.set_value(n,'Links',str(lll))
-        for col in ['INN','KPP','OGRN','BIK','CS','RS','Phones','Email','VK','OK','Facebook','Twitter','Instagram','YouTube','DomainRegDate','DomainExpiryDate','Payment']:
+        for col in ['INN','KPP','OGRN','BIK','CS','RS','Phones','Email','VK','OK','Facebook','Twitter','Instagram','YouTube','Payment']:
             res=res.set_value(n,col,sdf.loc[sdf[col].apply(len)==sdf[col].apply(len).max()][col].values.ravel()[0])        
         res=res.set_value(n,'INNS',';'.join(list(sdf['INNS'].values.ravel())))
         res=res.set_value(n,'OGRNS',';'.join(list(sdf['OGRNS'].values.ravel())))
@@ -412,7 +430,7 @@ if __name__ == '__main__':
     res['Phones']=res['Phones'].apply(lambda x: ';'.join(set(x.split(';'))))
     res['INNS']=res['INNS'].apply(lambda x: ';'.join(set([s for s in x.split(';') if s!=''])))
     res['OGRNS']=res['OGRNS'].apply(lambda x: ';'.join(set([s for s in x.split(';') if s!=''])))
-    res=res[['In_Web','Out_Web', '<Title>','<Description>','<Keywords>','Links','INN','KPP','OGRN','BIK','CS','RS','Phones','Email','VK','OK','Facebook','Twitter','Instagram','YouTube','In_RegDate','DomainRegDate','DomainExpiryDate','Payment','INNS','OGRNS']]
+    res=res[['In_Web','Out_Web', '<Title>','<Description>','<Keywords>','Links','INN','KPP','OGRN','BIK','CS','RS','Phones','Email','VK','OK','Facebook','Twitter','Instagram','YouTube','In_RegDate','DomainRegDate','DomainExpiryDate','Payment','INNS','OGRNS','WHOIS']]
 
     writer = pd.ExcelWriter('ecom_result_part0.xlsx',options={'strings_to_urls': False})
     res.to_excel(writer,index=None)
