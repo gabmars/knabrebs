@@ -81,6 +81,7 @@ def scan(inpt,data):
         email=''
         try: 
             resp=requests.get('http://'+sweb,timeout=3)
+            resp.encoding='utf8'
             web=resp.url
             for sw in ['https','http',':','/','www.']:
                 web=web.replace(sw,'')
