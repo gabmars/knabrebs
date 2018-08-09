@@ -9,10 +9,12 @@ import os
 import json
 import sys
 warnings.simplefilter(action='ignore', category=FutureWarning)
- ip2=[7,2,4,10,3,5,9,4,6,8]
+
+ip2=[7,2,4,10,3,5,9,4,6,8]
 ip1=[3,7,2,4,10,3,5,9,4,6,8]
 ul=[2,4,10,3,5,9,4,6,8]
- def check_inn(inn):
+
+def check_inn(inn):
     if len(inn)==9 or len(inn)==11:
         inn='0'+inn
     elif len(inn)<9 or len(inn)>12:
@@ -36,7 +38,8 @@ ul=[2,4,10,3,5,9,4,6,8]
         if str(chck_sum%11)[-1]!=inn[9]:
             return False
         return True
- def check_ogrn(ogrn):
+
+def check_ogrn(ogrn):
     if len(ogrn)==13:
         if str(int(ogrn[:12])%11)[-1]!=ogrn[-1]:
             return False
@@ -45,21 +48,25 @@ ul=[2,4,10,3,5,9,4,6,8]
         if str(int(ogrn[:14])%11)[-1]!=ogrn[-1]:
             return False
         return True
- webs=pd.read_csv('ecom_test_sample.csv',encoding='1251', sep=';')
+
+webs=pd.read_csv('ecom_test_sample.csv',encoding='1251', sep=';')
 webs=webs.fillna('')
 #%%
 #webs.columns=['дата','домен']
 #webs['дата']=webs['дата'].apply(lambda x: x.strftime('%d.%m.%Y'))
 webs['домен']=webs['домен'].replace({'https':'','http':'',':':'','/':'','www.':''},regex=True)
- #%%
+
+#%%
 l=webs[['домен','дата']].values.tolist()
 chunk_size=50
 chunks=[l[i:i + chunk_size] for i in range(0, len(l), chunk_size)]
 #%%
- #<time_monitor>
+
+#<time_monitor>
 #elepsed_time={}
 #</time_monitor>
- def scan(inpt,data):
+
+def scan(inpt,data):
     def check_www(url, text):
         if 'www' in text: 
             return url
@@ -533,7 +540,8 @@ chunks=[l[i:i + chunk_size] for i in range(0, len(l), chunk_size)]
             row.append('')
             row.append('')
             data.append(row)
- #%%
+
+#%%
 if __name__ == '__main__':
     for f in os.listdir('log'):
         os.remove('log\\'+f)
@@ -550,7 +558,8 @@ if __name__ == '__main__':
         p.join()
        
     data=pd.DataFrame(list(shared_list))
- #%%      
+
+#%%      
     print('Collected')
     
     writer = pd.ExcelWriter('ecom_temp.xlsx',options={'strings_to_urls': False})
@@ -640,4 +649,4 @@ if __name__ == '__main__':
     #elpsd_tm=(datetime.datetime.now()-general_start_time).total_seconds()
     #time_df=pd.DataFrame([elepsed_time]).T
     #time_df[1]=time_df[0].apply(lambda x: x*100/elpsd_tm)
-    #</time_monitor> 
+    #</time_monitor>
