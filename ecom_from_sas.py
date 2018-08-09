@@ -9,6 +9,39 @@ import os
 import json
 import sys
 warnings.simplefilter(action='ignore', category=FutureWarning)
+import smtplib
+from os.path import basename
+from email.mime.application import MIMEApplication
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.utils import COMMASPACE, formatdate
+
+def send_mail(send_to, subject, text, files=None):
+      
+    msg = MIMEMultipart()
+    msg['From'] = 'ecomscanner@gmail.com'
+    msg['To'] = send_to
+    msg['Date'] = formatdate(localtime=True)
+    msg['Subject'] = subject
+
+    msg.attach(MIMEText(text))
+
+    for f in files or []:
+        with open(f, "rb") as fil:
+            part = MIMEApplication(
+                fil.read(),
+                Name=basename(f)
+            )
+        part['Content-Disposition'] = 'attachment; filename="%s"' % basename(f)
+        msg.attach(part)
+
+
+    smtp = smtplib.SMTP('smtp.gmail.com', 465)
+    smtp.ehlo()
+    smtp.starttls()
+    smtp.login('ecomscanner@gmail.com', 'EcomS123')
+    smtp.sendmail('ecomscanner@gmail.com', send_to, msg.as_string())
+    smtp.close()
 
 ip2=[7,2,4,10,3,5,9,4,6,8]
 ip1=[3,7,2,4,10,3,5,9,4,6,8]
