@@ -16,10 +16,12 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import COMMASPACE, formatdate
 
+ecom_dir='/home/ecom/'
+
 def ecom_logger(tid, message):
     print('{} {} {}'.format(str(datetime.datetime.now()), tid, message))
-    with open('ecom_log', 'a') as file:
-        file.write('{} {} {}'.format(str(datetime.datetime.now()), tid, message))
+    with open(ecom_dir+'ecom_log', 'a') as file:
+        file.write('{} {} {}\n'.format(str(datetime.datetime.now()), tid, message))
         file.close()
 
 def send_mail(send_to, subject, text, files=None):
@@ -88,7 +90,7 @@ def check_ogrn(ogrn):
             return False
         return True
 
-def scan(inpt,data):
+def scan(inpt,data, ecom_dir):
     def check_www(url, text):
         if 'www' in text: 
             return url
@@ -106,7 +108,7 @@ def scan(inpt,data):
     #    start_time=datetime.datetime.now()
         #</time_monitor>
         sweb=inp[0]
-        sys.stdout=open('/ecomlog/{}_{}.counter_log'.format(str(len(data)), tid),'w')
+        sys.stdout=open(ecom_dir+'/ecomlog/{}_{}.counter_log'.format(str(len(data)), tid),'w')
         print(len(data))
         title=''
         meta_descr=''
@@ -563,17 +565,17 @@ def scan(inpt,data):
             row.append('')
             data.append(row)
 
-#%%
+
 if __name__ == '__main__':
     start_time=datetime.datetime.now()
     
     tid=start_time.strftime('%d%m%y_%H%M%S')
-    output_filename='ecom_res_'+tid
+    output_filename=ecom_dir+'OUT/ecom_res_'+tid
     
     ecom_logger(tid,'START')
-    
+
     try:
-        webs=pd.read_csv('ecom_test_sample.csv',encoding='1251', sep=';')
+        webs=pd.read_csv(sys.argv[1],encoding='1251', sep=';')
     except Exception as e:
         ecom_logger(tid,'ERROR WITH READING DOMAINS: '+str(e))
         sys.exit('FATAL ERROR')
@@ -589,132 +591,133 @@ if __name__ == '__main__':
     except Exception as e:
         ecom_logger(tid,'ERROR WITH PREFORMATTIG DOMAINS: '+str(e))
         sys.exit('FATAL ERROR')
+
     try:
         l=webs[['домен','дата']].values.tolist()
         n_chunks=50
         chunks=[l[i::n_chunks] for i in range(n_chunks)]
     except Exception as e:
         ecom_logger(tid,'ERROR WITH CHUNKIFING: '+str(e))
-        sys.exit('FATAL ERROR')        
+        sys.exit('FATAL ERROR')
         
-        ecom_logger(tid,'RECEIVED FILE WITH {} DOMAINS. CHUNKED TO {} BY {}'.format(str(webs.shape[0]),str(n_chunks),str(len(chunks[0]))))
-        
-        #<time_monitor>
-        #elepsed_time={}
-        #</time_monitor>
-        
-        mgr=mp.Manager()
-        shared_list=mgr.list()
-        
-        prcs=[] 
-        for chunk in chunks:
-            p=mp.Process(target=scan, args=(chunk,shared_list,))
-            prcs.append(p)
-            p.start() 
-        
-        for p in prcs:
-            p.join()
-           
-        data=pd.DataFrame(list(shared_list))
+    ecom_logger(tid,'RECEIVED FILE WITH {} DOMAINS. CHUNKED TO {} BY {}'.format(str(webs.shape[0]),str(n_chunks),str(len(chunks[0]))))
     
-        for f in [f for f in os.listdir('ecomlog') if tid in f]:
-            os.remove('/ecomlog/'+f)
-    #%%      
-        ecom_logger(tid,'DATA COLLECTED. ELAPSED TIME {}'.format(str(datetime.datetime.now()-start_time)))
-        
-        writer = pd.ExcelWriter('ecom_temp.xlsx',options={'strings_to_urls': False})
-        data.to_excel(writer,index=None)
-        writer.close()
-        data.columns=['In_Web','In_RegDate','MainContent','Out_Web','<Title>','<Description>','<Keywords>','LinkType','Link','VK','OK','Facebook','Twitter','Instagram','YouTube','Phones','PhonesLabels','INN','KPP','OGRN','BIK','NAME','CS','RS','Email','DomainRegDate','DomainExpiryDate','WHOIS','WHOIS_PHONE','WHOIS_EMAIL','Payment','INNS','OGRNS']
-        data=data[['In_Web','Out_Web', 'MainContent', '<Title>','<Description>','<Keywords>','LinkType','Link','NAME','INN','KPP','OGRN','BIK','CS','RS','Phones','PhonesLabels','Email','VK','OK','Facebook','Twitter','Instagram','YouTube','In_RegDate','DomainRegDate','DomainExpiryDate','Payment','WHOIS','WHOIS_PHONE','WHOIS_EMAIL', 'INNS','OGRNS']]
-        data=data.fillna('')
-        
-        data['INN']=data['INN'].apply(lambda x: re.sub('\D','',x))
-        data['KPP']=data['KPP'].apply(lambda x: re.sub('\D','',x))
-        data['OGRN']=data['OGRN'].apply(lambda x: re.sub('\D','',x))
-        data['BIK']=data['BIK'].apply(lambda x: re.sub('\D','',x))
-        data['CS']=data['CS'].apply(lambda x: re.sub('\D','',x))
-        data['RS']=data['RS'].apply(lambda x: re.sub('\D','',x))
-        
-        for i in data.loc[~data['INN'].apply(len).isin([9,10,11,12])].index:
-            data=data.set_value(i,'INN','')
-        for i in data.loc[~data['KPP'].apply(len).isin([8,9])].index:
-            data=data.set_value(i,'KPP','')
-        for i in data.loc[~data['OGRN'].apply(len).isin([12,13,14,15])].index:
-            data=data.set_value(i,'OGRN','')
-        for i in data.loc[~data['BIK'].apply(len).isin([8,9])].index:
-            data=data.set_value(i,'BIK','')
-        for i in data.loc[~data['CS'].apply(len)==20].index:
-            data=data.set_value(i,'CS','')
-        for i in data.loc[~data['RS'].apply(len)==20].index:
-            data=data.set_value(i,'RS','')
-        
-        first_attr=['Компания','О компании','Контакты','Контактная информация','Контакты и реквизиты']
-        
-        data['Аттрибут']='2'
-        
-        for i in data.loc[data['LinkType'].isin(first_attr)].index:
-            data=data.set_value(i,'Аттрибут','1')
-        for i in data.loc[data['LinkType']==''].index:
-            data=data.set_value(i,'Аттрибут','')        
-        
-        writer = pd.ExcelWriter(output_filename+'_new.xlsx',options={'strings_to_urls': False})
-        data.to_excel(writer,index=None)
-        writer.close()
-        
-        data=data.drop(['Аттрибут'],axis=1)
-        
-        res=pd.DataFrame() 
-        
-        for n,i in enumerate(data['In_Web'].drop_duplicates().values.ravel()):
-            sdf=data.loc[data['In_Web']==i].copy()
-            lll={}
-            for lt,ll in zip(sdf['LinkType'].values.ravel(),sdf['Link'].values.ravel()):
-                lll[lt]=ll
-            for col in ['In_Web','In_RegDate', 'MainContent', 'Out_Web','<Title>','<Description>','<Keywords>','DomainRegDate','DomainExpiryDate','WHOIS','WHOIS_PHONE','WHOIS_EMAIL']:
-                res=res.set_value(n,col,sdf[col].values.ravel()[0])
-            res=res.set_value(n,'Links',str(lll))
-            for col in ['INN','KPP','OGRN','BIK','CS','RS','Email','VK','OK','Facebook','Twitter','Instagram','YouTube','Payment']:
-                res=res.set_value(n,col,sdf.loc[sdf[col].apply(len)==sdf[col].apply(len).max()][col].values.ravel()[0])        
-            res=res.set_value(n,'INNS',';'.join(list(sdf['INNS'].values.ravel())))
-            res=res.set_value(n,'OGRNS',';'.join(list(sdf['OGRNS'].values.ravel())))
-            res=res.set_value(n,'NAME',';'.join(set(list(sdf['NAME'].values.ravel()))))
-            res=res.set_value(n,'Phones',';'.join(set(list(sdf['Phones'].values.ravel()))))
-            sdf_phones={}
-            [sdf_phones.update(json.loads(psdf)) for psdf in sdf['PhonesLabels'].values if psdf != '']
-            res=res.set_value(n,'PhonesLabels',json.dumps(sdf_phones,ensure_ascii=False))
-        
-        social_networks={'VK':'vk.com','OK':'ok.ru','Facebook':'facebook.com','Twitter':'twitter.com','Instagram':'instagram.com','YouTube':'youtube.com'}
-        for s in ['VK', 'OK', 'Facebook', 'Twitter', 'Instagram']:
-            res[s]=res[s].apply(lambda x: ';'.join(set([re.findall(r'^|(\b|http(\b|s)://)(\b|www.)({}/\w*)'.format(social_networks[s]),snl)[-1][-1] for snl in x.split(';')])))
-        res['YouTube']=res['YouTube'].apply(lambda x: ';'.join(set([re.findall(r'^|(\b|http(\b|s)://)(\b|www.)({}/\w*/\w*)'.format(social_networks[s]),snl)[-1][-1] for snl in x.split(';')])))
-        
-        res['INNS']=res['INNS'].apply(lambda x: ';'.join(set([s.strip() for s in x.split(';') if s!=''])))
-        res['OGRNS']=res['OGRNS'].apply(lambda x: ';'.join(set([s.strip() for s in x.split(';') if s!=''])))
-        res['NAME']=res['NAME'].apply(lambda x: ';'.join(set([re.sub(r'20\d\d(| )-(| )20\d\d','',s).replace('©','').strip() for s in x.split(';') if s!=''])))
-        res['Phones']=res['Phones'].apply(lambda x: ';'.join(set([s.strip() for s in x.split(';') if s!=''])))
-        res=res[['In_Web','Out_Web', 'MainContent','<Title>','<Description>','<Keywords>','Links','NAME','INN','KPP','OGRN','BIK','CS','RS','Phones','PhonesLabels','Email','VK','OK','Facebook','Twitter','Instagram','YouTube','In_RegDate','DomainRegDate','DomainExpiryDate','Payment','INNS','OGRNS','WHOIS','WHOIS_PHONE','WHOIS_EMAIL']]
-        
-        writer = pd.ExcelWriter(output_filename+'.xlsx',options={'strings_to_urls': False})
-        res.to_excel(writer,index=None)
-        writer.close()
-        
-        ecom_logger(tid,'DATA FORMATTED. ELAPSED TIME {}'.format(str(datetime.datetime.now()-start_time)))
-        
-        try:
-            send_mail('studtosber@gamil.com', 'ECOM', 'Result', [output_filename+'.xlsx'])
-        except Exception as e:
-            ecom_logger(tid,'ERROR WITH SENDIG RESULT: '+str(e))
-            sys.exit('FATAL ERROR') 
-        
-        #max_row=res.shape[0]
-        #for dn in webs.loc[~webs['домен'].isin(res['In_Web'].values.ravel())]['домен'].values:
-        #    res=res.set_value(max_row,'In_Web',dn)
-        #    max_row+=1
-        #%%
-        #<time_monitor>
-        #elepsed_time['Post edit']=elepsed_time.get('Post edit',0)+(datetime.datetime.now()-start_time).total_seconds()
-        #elpsd_tm=(datetime.datetime.now()-general_start_time).total_seconds()
-        #time_df=pd.DataFrame([elepsed_time]).T
-        #time_df[1]=time_df[0].apply(lambda x: x*100/elpsd_tm)
-        #</time_monitor>
+    #<time_monitor>
+    #elepsed_time={}
+    #</time_monitor>
+    
+    mgr=mp.Manager()
+    shared_list=mgr.list()
+    
+    prcs=[] 
+    for chunk in chunks:
+        p=mp.Process(target=scan, args=(chunk,shared_list,ecom_dir,))
+        prcs.append(p)
+        p.start() 
+    
+    for p in prcs:
+        p.join()
+       
+    data=pd.DataFrame(list(shared_list))
+
+    for f in [f for f in os.listdir(ecom_dir+'ecomlog') if tid in f]:
+        os.remove(ecom_dir+'ecomlog/'+f)
+
+    ecom_logger(tid,'DATA COLLECTED. ELAPSED TIME {}'.format(str(datetime.datetime.now()-start_time)))
+    
+    writer = pd.ExcelWriter(output_filename+'_temp.xlsx',options={'strings_to_urls': False})
+    data.to_excel(writer,index=None)
+    writer.close()
+    data.columns=['In_Web','In_RegDate','MainContent','Out_Web','<Title>','<Description>','<Keywords>','LinkType','Link','VK','OK','Facebook','Twitter','Instagram','YouTube','Phones','PhonesLabels','INN','KPP','OGRN','BIK','NAME','CS','RS','Email','DomainRegDate','DomainExpiryDate','WHOIS','WHOIS_PHONE','WHOIS_EMAIL','Payment','INNS','OGRNS']
+    data=data[['In_Web','Out_Web', 'MainContent', '<Title>','<Description>','<Keywords>','LinkType','Link','NAME','INN','KPP','OGRN','BIK','CS','RS','Phones','PhonesLabels','Email','VK','OK','Facebook','Twitter','Instagram','YouTube','In_RegDate','DomainRegDate','DomainExpiryDate','Payment','WHOIS','WHOIS_PHONE','WHOIS_EMAIL', 'INNS','OGRNS']]
+    data=data.fillna('')
+    
+    data['INN']=data['INN'].apply(lambda x: re.sub('\D','',x))
+    data['KPP']=data['KPP'].apply(lambda x: re.sub('\D','',x))
+    data['OGRN']=data['OGRN'].apply(lambda x: re.sub('\D','',x))
+    data['BIK']=data['BIK'].apply(lambda x: re.sub('\D','',x))
+    data['CS']=data['CS'].apply(lambda x: re.sub('\D','',x))
+    data['RS']=data['RS'].apply(lambda x: re.sub('\D','',x))
+    
+    for i in data.loc[~data['INN'].apply(len).isin([9,10,11,12])].index:
+        data=data.set_value(i,'INN','')
+    for i in data.loc[~data['KPP'].apply(len).isin([8,9])].index:
+        data=data.set_value(i,'KPP','')
+    for i in data.loc[~data['OGRN'].apply(len).isin([12,13,14,15])].index:
+        data=data.set_value(i,'OGRN','')
+    for i in data.loc[~data['BIK'].apply(len).isin([8,9])].index:
+        data=data.set_value(i,'BIK','')
+    for i in data.loc[~data['CS'].apply(len)==20].index:
+        data=data.set_value(i,'CS','')
+    for i in data.loc[~data['RS'].apply(len)==20].index:
+        data=data.set_value(i,'RS','')
+    
+    first_attr=['Компания','О компании','Контакты','Контактная информация','Контакты и реквизиты']
+    
+    data['Аттрибут']='2'
+    
+    for i in data.loc[data['LinkType'].isin(first_attr)].index:
+        data=data.set_value(i,'Аттрибут','1')
+    for i in data.loc[data['LinkType']==''].index:
+        data=data.set_value(i,'Аттрибут','')
+    
+    writer = pd.ExcelWriter(output_filename+'_new.xlsx',options={'strings_to_urls': False})
+    data.to_excel(writer,index=None)
+    writer.close()
+    
+    data=data.drop(['Аттрибут'],axis=1)
+    
+    res=pd.DataFrame() 
+    
+    for n,i in enumerate(data['In_Web'].drop_duplicates().values.ravel()):
+        sdf=data.loc[data['In_Web']==i].copy()
+        lll={}
+        for lt,ll in zip(sdf['LinkType'].values.ravel(),sdf['Link'].values.ravel()):
+            lll[lt]=ll
+        for col in ['In_Web','In_RegDate', 'MainContent', 'Out_Web','<Title>','<Description>','<Keywords>','DomainRegDate','DomainExpiryDate','WHOIS','WHOIS_PHONE','WHOIS_EMAIL']:
+            res=res.set_value(n,col,sdf[col].values.ravel()[0])
+        res=res.set_value(n,'Links',str(lll))
+        for col in ['INN','KPP','OGRN','BIK','CS','RS','Email','VK','OK','Facebook','Twitter','Instagram','YouTube','Payment']:
+            res=res.set_value(n,col,sdf.loc[sdf[col].apply(len)==sdf[col].apply(len).max()][col].values.ravel()[0])        
+        res=res.set_value(n,'INNS',';'.join(list(sdf['INNS'].values.ravel())))
+        res=res.set_value(n,'OGRNS',';'.join(list(sdf['OGRNS'].values.ravel())))
+        res=res.set_value(n,'NAME',';'.join(set(list(sdf['NAME'].values.ravel()))))
+        res=res.set_value(n,'Phones',';'.join(set(list(sdf['Phones'].values.ravel()))))
+        sdf_phones={}
+        [sdf_phones.update(json.loads(psdf)) for psdf in sdf['PhonesLabels'].values if psdf != '']
+        res=res.set_value(n,'PhonesLabels',json.dumps(sdf_phones,ensure_ascii=False))
+    
+    social_networks={'VK':'vk.com','OK':'ok.ru','Facebook':'facebook.com','Twitter':'twitter.com','Instagram':'instagram.com','YouTube':'youtube.com'}
+    for s in ['VK', 'OK', 'Facebook', 'Twitter', 'Instagram']:
+        res[s]=res[s].apply(lambda x: ';'.join(set([re.findall(r'^|(\b|http(\b|s)://)(\b|www.)({}/\w*)'.format(social_networks[s]),snl)[-1][-1] for snl in x.split(';')])))
+    res['YouTube']=res['YouTube'].apply(lambda x: ';'.join(set([re.findall(r'^|(\b|http(\b|s)://)(\b|www.)({}/\w*/\w*)'.format(social_networks[s]),snl)[-1][-1] for snl in x.split(';')])))
+    
+    res['INNS']=res['INNS'].apply(lambda x: ';'.join(set([s.strip() for s in x.split(';') if s!=''])))
+    res['OGRNS']=res['OGRNS'].apply(lambda x: ';'.join(set([s.strip() for s in x.split(';') if s!=''])))
+    res['NAME']=res['NAME'].apply(lambda x: ';'.join(set([re.sub(r'20\d\d(| )-(| )20\d\d','',s).replace('©','').strip() for s in x.split(';') if s!=''])))
+    res['Phones']=res['Phones'].apply(lambda x: ';'.join(set([s.strip() for s in x.split(';') if s!=''])))
+    res=res[['In_Web','Out_Web', 'MainContent','<Title>','<Description>','<Keywords>','Links','NAME','INN','KPP','OGRN','BIK','CS','RS','Phones','PhonesLabels','Email','VK','OK','Facebook','Twitter','Instagram','YouTube','In_RegDate','DomainRegDate','DomainExpiryDate','Payment','INNS','OGRNS','WHOIS','WHOIS_PHONE','WHOIS_EMAIL']]
+    
+    writer = pd.ExcelWriter(output_filename+'.xlsx',options={'strings_to_urls': False})
+    res.to_excel(writer,index=None)
+    writer.close()
+    
+    ecom_logger(tid,'DATA FORMATTED. ELAPSED TIME {}'.format(str(datetime.datetime.now()-start_time)))
+    
+    try:
+        send_mail('studtosber@gamil.com', 'ECOM', 'Result', [output_filename+'.xlsx'])
+    except Exception as e:
+        ecom_logger(tid,'ERROR WITH SENDIG RESULT: '+str(e))
+        sys.exit('FATAL ERROR') 
+    
+    #max_row=res.shape[0]
+    #for dn in webs.loc[~webs['домен'].isin(res['In_Web'].values.ravel())]['домен'].values:
+    #    res=res.set_value(max_row,'In_Web',dn)
+    #    max_row+=1
+    #%%
+    #<time_monitor>
+    #elepsed_time['Post edit']=elepsed_time.get('Post edit',0)+(datetime.datetime.now()-start_time).total_seconds()
+    #elpsd_tm=(datetime.datetime.now()-general_start_time).total_seconds()
+    #time_df=pd.DataFrame([elepsed_time]).T
+    #time_df[1]=time_df[0].apply(lambda x: x*100/elpsd_tm)
+    #</time_monitor>
