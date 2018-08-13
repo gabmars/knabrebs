@@ -1,27 +1,3 @@
-import imaplib
-import email
-
-imapSession = imaplib.IMAP4_SSL('imap.gmail.com',993)
-imapSession.login('ecomscanner@gmail.com','EcomS123')
-imapSession.select('inbox')
-
-typ, data = imapSession.search(None, 'ALL')
-if typ=='OK':
-    print(data)
-    mids=data[0].split()
-#    for i in mids:
-#        typ, bmsg = imapSession.fetch(i, '(RFC822)' )
-#        
-#        if typ=='OK':    
-#            for response_part in bmsg:
-#                if isinstance(response_part, tuple):
-#                    msg = email.message_from_string(response_part[1].decode('utf8'))
-#                    
-#                    for part in msg.walk():
-#                        if part.get_content_maintype() =='text':
-imapSession.close()     
-imapSession.logout()
-
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
@@ -598,8 +574,8 @@ if __name__ == '__main__':
     
     try:
         webs=pd.read_csv('ecom_test_sample.csv',encoding='1251', sep=';')
-    except:
-        ecom_logger(tid,'ERROR WITH READING DOMAINS')
+    except Exception as e:
+        ecom_logger(tid,'ERROR WITH READING DOMAINS: '+str(e))
         sys.exit('FATAL ERROR')
     try:
         webs=webs.fillna('')
@@ -610,15 +586,15 @@ if __name__ == '__main__':
         webs.columns=['домен','дата']
         #webs['дата']=webs['дата'].apply(lambda x: x.strftime('%d.%m.%Y'))
         webs['домен']=webs['домен'].replace({'https':'','http':'',':':'','/':'','www.':''},regex=True)
-    except:
-        ecom_logger(tid,'ERROR WITH PREFORMATTIG DOMAINS')
+    except Exception as e:
+        ecom_logger(tid,'ERROR WITH PREFORMATTIG DOMAINS: '+str(e))
         sys.exit('FATAL ERROR')
     try:
         l=webs[['домен','дата']].values.tolist()
         n_chunks=50
         chunks=[l[i::n_chunks] for i in range(n_chunks)]
-    except:
-        ecom_logger(tid,'ERROR WITH CHUNKIFING')
+    except Exception as e:
+        ecom_logger(tid,'ERROR WITH CHUNKIFING: '+str(e))
         sys.exit('FATAL ERROR')        
         
         ecom_logger(tid,'RECEIVED FILE WITH {} DOMAINS. CHUNKED TO {} BY {}'.format(str(webs.shape[0]),str(n_chunks),str(len(chunks[0]))))
@@ -727,8 +703,8 @@ if __name__ == '__main__':
         
         try:
             send_mail('studtosber@gamil.com', 'ECOM', 'Result', [output_filename+'.xlsx'])
-        except:
-            ecom_logger(tid,'ERROR WITH SENDIG RESULT')
+        except Exception as e:
+            ecom_logger(tid,'ERROR WITH SENDIG RESULT: '+str(e))
             sys.exit('FATAL ERROR') 
         
         #max_row=res.shape[0]
